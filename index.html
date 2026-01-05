@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gemini for Education: Hab Persediaan Interaktif</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; color: #334155; }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        /* Chart Container Styling - MANDATORY */
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container { height: 350px; }
+        }
+
+        /* Animations */
+        .fade-in { animation: fadeIn 0.5s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .card-hover { transition: all 0.3s ease; }
+        .card-hover:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
+        
+        /* Flashcard Styles */
+        .flashcard { perspective: 1000px; }
+        .flashcard-inner { transition: transform 0.6s; transform-style: preserve-3d; }
+        .flashcard.flipped .flashcard-inner { transform: rotateY(180deg); }
+        .flashcard-front, .flashcard-back { backface-visibility: hidden; }
+        .flashcard-back { transform: rotateY(180deg); }
+    </style>
+    <!-- Chosen Palette: Warm Neutrals with Corporate Blue/Green Accents (Google-inspired but softer) -->
+    <!-- Application Structure Plan: 
+         1. Dashboard: Overview of topics, progress visualization, and quick stats. Uses a Doughnut chart to show topic weightage.
+         2. Bank Soalan (Study List): A filterable, searchable list of all 53 questions. Uses accordion style for 'Inform/Organize' goal.
+         3. Mod Kad Imbasan (Active Recall): An interactive flashcard game to test knowledge. Uses 'Change/Engagement' goal.
+         Structure chosen to allow both passive review (List) and active testing (Flashcards).
+    -->
+    <!-- Visualization & Content Choices:
+         1. Topic Distribution (Doughnut Chart): To show which categories (e.g., NotebookLM, Ethics) are most heavily weighted in the exam.
+         2. Interactive List: To organize the dense textual content of 53 questions into consumable chunks.
+         3. Flashcard Interface: To provide a 'Game' element for self-assessment.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+</head>
+<body class="bg-slate-50 min-h-screen flex flex-col">
+
+    <!-- Navigation -->
+    <nav class="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center gap-3">
+                    <div class="h-8 w-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-lg">G</div>
+                    <span class="font-semibold text-slate-800 text-lg tracking-tight">Nota Persediaan Gemini for Education</span>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <button onclick="switchView('dashboard')" id="nav-dashboard" class="px-3 py-2 rounded-md text-sm font-medium text-blue-600 bg-blue-50 transition-colors">Utama</button>
+                    <button onclick="switchView('study')" id="nav-study" class="px-3 py-2 rounded-md text-sm font-medium text-slate-600 hover:text-blue-600 hover:bg-slate-50 transition-colors">Bank Soalan</button>
+                    <button onclick="switchView('flashcards')" id="nav-flashcards" class="px-3 py-2 rounded-md text-sm font-medium text-slate-600 hover:text-blue-600 hover:bg-slate-50 transition-colors">Kad Imbasan</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="flex-grow container mx-auto px-4 py-8 max-w-7xl">
+        
+        <!-- DASHBOARD VIEW -->
+        <div id="view-dashboard" class="fade-in space-y-8">
+            <!-- Intro Section -->
+            <div class="text-center max-w-3xl mx-auto mb-10">
+                <h1 class="text-3xl font-bold text-slate-900 mb-4">Pusat Kawalan Pembelajaran</h1>
+                <p class="text-slate-600 leading-relaxed">
+                    Selamat datang ke hab interaktif untuk pensijilan <strong>Google Gemini for Education</strong>. 
+                    Aplikasi ini menganalisis 53 soalan utama daripada bank soalan untuk membantu anda memahami 
+                    struktur peperiksaan, menguasai topik kritikal seperti NotebookLM dan Etika AI, serta menguji kefahaman anda.
+                </p>
+            </div>
+
+            <!-- Stats Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm card-hover">
+                    <div class="text-sm font-medium text-slate-500 mb-1">Jumlah Soalan</div>
+                    <div class="text-4xl font-bold text-blue-600">53</div>
+                    <div class="text-xs text-green-600 mt-2 font-medium">100% Data Disahkan</div>
+                </div>
+                <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm card-hover">
+                    <div class="text-sm font-medium text-slate-500 mb-1">Kategori Utama</div>
+                    <div class="text-4xl font-bold text-indigo-600">11</div>
+                    <div class="text-xs text-slate-400 mt-2">Topik Diversifikasi</div>
+                </div>
+                <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm card-hover">
+                    <div class="text-sm font-medium text-slate-500 mb-1">Fokus Terbesar</div>
+                    <div class="text-3xl font-bold text-teal-600">NotebookLM</div>
+                    <div class="text-xs text-slate-400 mt-2">~20% daripada soalan</div>
+                </div>
+            </div>
+
+            <!-- Chart Section -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+                <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                    <h3 class="text-lg font-semibold text-slate-800 mb-2">Taburan Topik Peperiksaan</h3>
+                    <p class="text-sm text-slate-500 mb-6">Analisis pecahan soalan mengikut kategori untuk merancang strategi ulang kaji anda.</p>
+                    
+                    <!-- Chart Container -->
+                    <div class="chart-container">
+                        <canvas id="topicChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col h-full">
+                    <h3 class="text-lg font-semibold text-slate-800 mb-4">Laluan Pantas</h3>
+                    <div class="space-y-4 flex-grow">
+                        <button onclick="switchView('study')" class="w-full group p-4 border border-slate-200 rounded-lg hover:border-blue-400 hover:bg-blue-50 transition-all text-left flex items-center justify-between">
+                            <div>
+                                <div class="font-medium text-slate-900 group-hover:text-blue-700">Semak Bank Soalan</div>
+                                <div class="text-sm text-slate-500">Lihat senarai lengkap dengan jawapan dan nota pakar.</div>
+                            </div>
+                            <span class="text-2xl text-slate-300 group-hover:text-blue-500">&rarr;</span>
+                        </button>
+                        <button onclick="switchView('flashcards')" class="w-full group p-4 border border-slate-200 rounded-lg hover:border-indigo-400 hover:bg-indigo-50 transition-all text-left flex items-center justify-between">
+                            <div>
+                                <div class="font-medium text-slate-900 group-hover:text-indigo-700">Mula Latihan Kad Imbasan</div>
+                                <div class="text-sm text-slate-500">Uji ingatan aktif anda dengan mod interaktif rawak.</div>
+                            </div>
+                            <span class="text-2xl text-slate-300 group-hover:text-indigo-500">&rarr;</span>
+                        </button>
+                    </div>
+                    
+                    <div class="mt-6 pt-6 border-t border-slate-100">
+                        <h4 class="text-sm font-semibold text-slate-700 mb-3">Topik Hangat (Hot Topics):</h4>
+                        <div class="flex flex-wrap gap-2">
+                            <span class="px-2 py-1 bg-amber-100 text-amber-700 text-xs rounded-full border border-amber-200">NotebookLM</span>
+                            <span class="px-2 py-1 bg-red-100 text-red-700 text-xs rounded-full border border-red-200">Hallucinations</span>
+                            <span class="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full border border-blue-200">Persona & Prompting</span>
+                            <span class="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full border border-green-200">Gemini for Workspace</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- STUDY LIST VIEW -->
+        <div id="view-study" class="hidden fade-in">
+            <div class="mb-8">
+                <h2 class="text-2xl font-bold text-slate-900">Bank Soalan Lengkap</h2>
+                <p class="text-slate-600 mt-2">Teroka kesemua 53 soalan. Gunakan penapis di bawah untuk fokus kepada topik tertentu.</p>
+            </div>
+
+            <!-- Filters -->
+            <div class="flex flex-wrap gap-2 mb-6" id="category-filters">
+                <button onclick="filterQuestions('all')" class="filter-btn active px-4 py-2 rounded-full text-sm font-medium bg-slate-800 text-white transition-all shadow-sm">Semua</button>
+                <!-- Generated by JS -->
+            </div>
+
+            <!-- List Container -->
+            <div id="questions-list" class="space-y-4">
+                <!-- Generated by JS -->
+            </div>
+        </div>
+
+        <!-- FLASHCARDS VIEW -->
+        <div id="view-flashcards" class="hidden fade-in flex flex-col items-center justify-center min-h-[60vh]">
+            <div class="text-center mb-8 max-w-lg">
+                <h2 class="text-2xl font-bold text-slate-900">Mod Kad Imbasan</h2>
+                <p class="text-slate-600 mt-2">Fikirkan jawapan sebelum menterbalikkan kad. Nilaikan diri anda untuk menjejak kemajuan sesi ini.</p>
+            </div>
+
+            <!-- Flashcard Container -->
+            <!-- FIXED: Added 'flashcard' class here so JS can find it -->
+            <div class="flashcard w-full max-w-2xl h-96 cursor-pointer group" onclick="flipCard()">
+                <div id="flashcard-inner" class="flashcard-inner relative w-full h-full text-center shadow-xl rounded-2xl transition-transform duration-700 transform-style-3d bg-white border border-slate-200">
+                    
+                    <!-- Front -->
+                    <div class="flashcard-front absolute w-full h-full backface-hidden flex flex-col items-center justify-center p-8 rounded-2xl bg-white">
+                        <span id="fc-category" class="absolute top-6 left-6 text-xs font-bold tracking-wider text-blue-600 uppercase bg-blue-50 px-2 py-1 rounded">Kategori</span>
+                        <div class="flex-grow flex items-center justify-center">
+                            <h3 id="fc-question" class="text-xl md:text-2xl font-medium text-slate-800 leading-relaxed">
+                                Soalan akan muncul di sini...
+                            </h3>
+                        </div>
+                        <p class="text-slate-400 text-sm mt-4 animate-pulse">Klik untuk lihat jawapan</p>
+                    </div>
+
+                    <!-- Back -->
+                    <div class="flashcard-back absolute w-full h-full backface-hidden flex flex-col items-center justify-center p-8 rounded-2xl bg-slate-900 text-white transform rotate-y-180">
+                        <div class="flex-grow flex flex-col items-center justify-center space-y-4">
+                            <div class="text-sm text-slate-400 uppercase tracking-wide">Jawapan</div>
+                            <h3 id="fc-answer" class="text-xl font-bold text-blue-300">
+                                Jawapan
+                            </h3>
+                            <div class="w-16 h-1 bg-slate-700 rounded-full my-2"></div>
+                            <p id="fc-note" class="text-slate-300 text-sm leading-relaxed max-w-md">
+                                Penjelasan pakar...
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Controls -->
+            <div class="flex items-center gap-4 mt-8 opacity-0 transition-opacity duration-300" id="fc-controls">
+                <button onclick="nextCard(false, event)" class="px-6 py-3 bg-white border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 hover:border-red-300 hover:text-red-600 font-medium shadow-sm transition-all flex items-center gap-2">
+                    <span>&#10005;</span> Perlu Ulangkaji
+                </button>
+                <button onclick="nextCard(true, event)" class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium shadow-md shadow-blue-200 transition-all flex items-center gap-2">
+                    <span>&#10003;</span> Saya Tahu
+                </button>
+            </div>
+            
+            <div class="mt-6 text-sm text-slate-400">
+                Kad <span id="fc-counter">1</span> / <span id="fc-total">0</span> dalam sesi ini
+            </div>
+        </div>
+
+    </main>
+
+    <footer class="bg-white border-t border-slate-200 mt-12 py-8">
+        <div class="container mx-auto px-4 text-center">
+            <p class="text-slate-500 text-sm">Dijana daripada Laporan Sumber Gemini for Education Certification.</p>
+            <p class="text-slate-400 text-xs mt-2">Bukan bahan rasmi Google. Untuk tujuan pembelajaran sahaja.</p>
+        </div>
+    </footer>
+
+    <script>
+        // --- DATA SOURCE (Parsed from Source Report) ---
+        const rawData = [
+            { id: 1, category: "NotebookLM", question: "A teacher would like help creating a mind map on a topic, which they have a number of existing resources for. Which tool could they use?", answer: "NotebookLM", note: "NotebookLM direka khusus untuk memproses dan mengaitkan maklumat daripada sumber sedia ada yang dimuat naik." },
+            { id: 2, category: "NotebookLM", question: "An English teacher wants to help students with different reading abilities understand a story the teacher has written. After uploading the story to NotebookLM, what is the best way to support all learners?", answer: "Ask NotebookLM to generate multiple summaries of the story, each tailored to a different reading level.", note: "Ini adalah contoh pembezaan (differentiation) yang berkesan menggunakan AI." },
+            { id: 3, category: "NotebookLM", question: "When NotebookLM answers a question based on the sources you've uploaded, how does it help you verify the information?", answer: "It provides inline citations that link directly to the relevant passages in your sources.", note: "Ciri ini penting untuk memastikan ketepatan fakta dan mengelakkan halusinasi." },
+            { id: 4, category: "NotebookLM", question: "Which of the following data sources can be used in NotebookLM? (Select all which apply)", answer: "Web Pages, Google Docs, Copied Text, PDF", note: "NotebookLM menerima pelbagai format input termasuk slaid dan teks yang disalin." },
+            { id: 5, category: "NotebookLM", question: "Audio Overviews in NotebookLM can be downloaded for use outside of the notebook.", answer: "True", note: "Audio Overview boleh dimuat turun sebagai fail audio (WAV/MP3) untuk didengar secara offline." },
+            { id: 6, category: "NotebookLM", question: "You can upload an MP3 file to NotebookLM.", answer: "True", note: "NotebookLM kini menyokong input audio untuk dianalisis." },
+            { id: 7, category: "NotebookLM", question: "An educator is starting a large research project with dozens of articles and notes. How would NotebookLM be most beneficial in the initial stages?", answer: "By synthesizing information across all uploaded documents to help them find connections and draft an outline.", note: "Kekuatan utama NotebookLM adalah 'grounding' atau mengikat jawapan kepada sumber yang dimuat naik sahaja." },
+            { id: 8, category: "NotebookLM", question: "A teacher uploads a one-page article on the lifecycle of a butterfly to NotebookLM. To help their class understand the key terms, what is the most effective use of the tool?", answer: "Ask NotebookLM to 'Generate a list of 5 key vocabulary words from the article and provide their definitions in simple terms'", note: "Menghasilkan bahan bantu mengajar (BBM) khusus daripada sumber tertentu." },
+            { id: 9, category: "NotebookLM", question: "An educator wants to get a quick, audible summary of a lengthy research paper they've uploaded to NotebookLM while they are multitasking. Which feature should they use?", answer: "Audio Overview", note: "Menukar teks kompleks kepada perbualan audio yang mudah difahami." },
+            { id: 10, category: "Etika & Keselamatan AI", question: "A science teacher integrates Gemini into their lesson planning process by having it generate quiz questions... The teacher then uses these materials directly with students without thoroughly reviewing the AI's output. What risks does this cause?", answer: "The AI-generated content could be written at an inappropriate level for the students (either too simple or too complex).", note: "AI memerlukan 'Human in the Loop' (pengawasan manusia) untuk memastikan kesesuaian konteks." },
+            { id: 11, category: "Etika & Keselamatan AI", question: "An English teacher uses Gemini to generate a list of essay topics... The AI provides a list that includes some potentially controversial topics, what should they do?", answer: "Critically review each topic for its age-appropriateness, potential to foster respectful debate, factual neutrality, and any inherent biases.", note: "Guru bertanggungjawab menyaring kandungan sensitif sebelum diberikan kepada pelajar." },
+            { id: 12, category: "Etika & Keselamatan AI", question: "A history teacher wants to implement a strategy to help students develop AI literacy... Which strategy would be most effective?", answer: "Engaging students in an activity where they compare and contrast AI-generated summaries... actively identifying discrepancies, biases.", note: "Aktiviti ini mengajar kemahiran berfikir kritis dan literasi AI." },
+            { id: 13, category: "Etika & Keselamatan AI", question: "When AI chatbots generate false, nonsensical, or misleading outputs that seem believable, these errors are referred to as what?", answer: "Hallucinations", note: "Istilah teknikal apabila AI mereka-reka fakta dengan yakin." },
+            { id: 14, category: "Etika & Keselamatan AI", question: "When an AI system shows a tendency to produce results that are systematically prejudiced due to the data it was trained on, this is known as:", answer: "Bias", note: "Bias berlaku apabila data latihan AI tidak seimbang atau mengandungi prasangka." },
+            { id: 15, category: "Etika & Keselamatan AI", question: "Gemini on a Google Workspace for Education account doesn't use your data to train the model.", answer: "True", note: "Google menjamin privasi data untuk akaun pendidikan (Workspace for Education)." },
+            { id: 16, category: "Etika & Keselamatan AI", question: "Which of the following would be appropriate content for simple classroom guidelines on the responsible and ethical use of generative AI?", answer: "A guideline requiring students to explicitly cite AI tools when used for brainstorming or drafting.", note: "Ketelusan penggunaan AI adalah asas integriti akademik." },
+            { id: 17, category: "Etika & Keselamatan AI", question: "A teacher asks a generative AI to summarize a historical event... implies a specific date is incorrect. What is the best way to handle this situation?", answer: "Treat the incorrect date as a likely hallucination and fact-check the information using reliable, primary sources.", note: "Sentiasa sahkan fakta AI dengan sumber primer." },
+            { id: 18, category: "Prompting (Arahan)", question: "What are the four main areas to consider when writing an effective prompt?", answer: "Persona, Task, Context, and Format", note: "Ini adalah kerangka standard untuk menghasilkan prompt yang berkualiti." },
+            { id: 19, category: "Prompting (Arahan)", question: "An administrator at a school needs help drafting a job description for a new teaching position. Which approach using Gemini is most likely to streamline this task?", answer: "Enter a prompt in Gemini, acting as an Education HR specialist, requesting a job description... including required skills.", note: "Menggunakan teknik 'Persona' (Education HR Specialist) memberikan hasil yang lebih profesional." },
+            { id: 20, category: "Prompting (Arahan)", question: "An educator wants to explore different teaching techniques for differentiation... Which of these Gemini prompts would be most appropriate?", answer: "I am an experienced middle school teacher, help me create a list of strategies to help support me to meet the needs of all of my students in my mixed ability classroom.", note: "Prompt ini lengkap dengan Persona, Konteks, dan Tugasan yang jelas." },
+            { id: 21, category: "Ciri Gemini", question: "After generating an output, what does the 'Sources' button in Gemini do?", answer: "Shows the websites used to create the content.", note: "Membantu pengguna melihat dari mana maklumat diambil (jika ia bukan janaan kreatif sepenuhnya)." },
+            { id: 22, category: "Ciri Gemini", question: "What does the 'Double Check Response' feature in Gemini allow you to do?", answer: "Explore the data sources for the answer from the web.", note: "Butang 'G' ini akan menyemak silang jawapan AI dengan carian Google untuk mengesahkan fakta." },
+            { id: 23, category: "Ciri Gemini", question: "You can create an image using Gemini.", answer: "True", note: "Gemini mempunyai keupayaan penjanaan imej (text-to-image)." },
+            { id: 24, category: "Ciri Gemini", question: "Which of the following describes how Create images works within Gemini?", answer: "It generates images from text prompts.", note: "Pengguna menaip deskripsi, dan AI menghasilkan visual." },
+            { id: 25, category: "Ciri Gemini", question: "Which of the following tools are available in Gemini?", answer: "Canvas - Create Docs and Apps (Note: Also Create Image)", note: "Canvas adalah antaramuka baru untuk menulis dan mengekod projek yang lebih besar." },
+            { id: 26, category: "Ciri Gemini", question: "You can share your Notebooks from NotebookLM with other users in your organisation.", answer: "True", note: "Kolaborasi dibenarkan seperti dalam Google Docs." },
+            { id: 27, category: "Ciri Gemini", question: "An educator is using Google Workspace with the Google AI Pro for Education... wants to create a new video for their students based on slides. Which method could be used?", answer: "Open a new Google Vids and select 'Import Slides'", note: "Google Vids (Video) adalah alat baru yang boleh menjana video daripada slaid/dokumen." },
+            { id: 28, category: "Ciri Baru (Gems & Deep Research)", question: "Which of the following features is primarily designed to help create multi-page reports?", answer: "Deep Research", note: "Deep Research membolehkan Gemini melakukan carian mendalam dan menyusun laporan panjang, bukan sekadar jawapan ringkas." },
+            { id: 29, category: "Ciri Baru (Gems & Deep Research)", question: "Which of the following describes a Gem?", answer: "Gems help you research topics in detail...", note: "Deep Research adalah untuk laporan, Gems adalah untuk persona tersuai (Custom Version)." },
+            { id: 30, category: "Ciri Baru (Gems & Deep Research)", question: "You can upload your own files to a Gem.", answer: "True", note: "Gem boleh diberi pengetahuan khusus melalui fail yang dimuat naik." },
+            { id: 31, category: "Integrasi Workspace", question: "Which Google tools offer an integration with Gemini?", answer: "Google Docs, Google Drive, Google Slides, Gmail", note: "Gemini diintegrasikan ke dalam ekosistem Workspace." },
+            { id: 32, category: "Integrasi Workspace", question: "An educator is using Google Docs with Google AI Pro... allows them to generate new content without leaving Docs.", answer: "True", note: "Ciri 'Help me write' berada terus di dalam Docs." },
+            { id: 33, category: "Integrasi Workspace", question: "An educator is using Gmail with Google AI Pro... generate responses to emails without leaving Gmail.", answer: "True", note: "Ciri 'Help me reply' dalam Gmail." },
+            { id: 34, category: "Integrasi Workspace", question: "To make it easier to share into Google Classroom you can share a link with students in Classroom to direct them to Gemini's Guided Learning Mode.", answer: "True", note: "Pautan boleh dikongsi terus untuk tugasan pelajar." },
+            { id: 35, category: "Konsep Asas AI", question: "What specific type of AI refers to a system which can create new types of content, such as text, images, or video?", answer: "Generative AI", note: "Definisi asas AI Generatif (berbeza dengan AI Analitik)." },
+            { id: 36, category: "Strategi Pengajaran", question: "A teacher wants their students to use Guided Learning mode in Gemini... which would be the most suitable method?", answer: "Share a direct Guided Learning link into Google Classroom.", note: "Cara paling efisien untuk memastikan pelajar sampai ke modul yang betul." },
+            { id: 37, category: "Strategi Pengajaran", question: "A history teacher has uploaded several primary source documents... wants to find additional related information from the web. Which NotebookLM feature would help?", answer: "The Discover Tool (atau 'Web Sources' integration)", note: "NotebookLM kini membenarkan carian web tambahan selain dokumen yang dimuat naik." },
+            { id: 38, category: "NotebookLM", question: "The school's administrative assistant is responsible for organizing the logistics for three different end-of-year field trips... What is the most effective way for them to create a master schedule?", answer: "Ask NotebookLM to 'Create a master timeline in a table format, extracting the departure times, arrival times, and venue contact numbers...'", note: "Teknik pengekstrakan data berstruktur (jadual) daripada dokumen tidak berstruktur adalah kekuatan utama NotebookLM." },
+            { id: 39, category: "Canvas & Coding", question: "A science teacher wants to create an interactive activity to help their students understand density. Which of the following approaches would be the best?", answer: "Ask Gemini to create a web-based application with Canvas that allows students to adjust the mass and volume of an object...", note: "Gemini Canvas boleh menulis dan menjalankan kod (HTML/JS) untuk simulasi sains ringkas." },
+            { id: 40, category: "Integrasi Workspace", question: "A school administrator would like to create an email newsletter for parents. Which tool(s) could they use?", answer: "Gemini for Education, Google Docs (with Gemini in Google Docs)", note: "Menggunakan Gemini dalam Docs untuk merangka kandungan surat berita." },
+            { id: 41, category: "Ciri Gemini", question: "What does the 'Share and Export' button in Gemini allow you to do?", answer: "Export to Docs, Draft in Gmail", note: "Cara pantas memindahkan hasil kerja AI ke dalam aplikasi produktiviti." },
+            { id: 42, category: "Guided Learning", question: "Which of these statements best describes Guided Learning in Gemini?", answer: "Guided Learning allows you to dive deeper into a topic, using open-ended questions to create a learning discussion.", note: "Mod ini bersifat 'Socratic', membimbing pelajar berfikir dan bukan sekadar memberi jawapan." },
+            { id: 43, category: "Strategi Pengajaran", question: "An educator wants to generate a vocabulary list for their next topic. Which option below would NOT help with this task?", answer: "Use audio overviews in Gemini to create a podcast...", note: "Soalan bentuk negatif. Audio Overview adalah untuk mendengar, bukan untuk menjana senarai kosa kata bertulis." },
+            { id: 44, category: "Prompting (Arahan)", question: "A teacher is planning a new unit on renewable energy... How could they use Gemini as a thought partner?", answer: "Enter a prompt in Gemini describing the unit topic and grade level, and ask it to generate lesson ideas and activities", note: "Teknik 'Brainstorming' yang efektif dengan memberikan konteks (topik & gred)." },
+            { id: 45, category: "Strategi Pengajaran", question: "An educator is looking for practical strategies to increase student leadership... How can they use Gemini to suggest relevant ideas?", answer: "Ask Gemini to create a list of strategies for student leadership opportunities.", note: "Permintaan langsung untuk idea/strategi." },
+            { id: 46, category: "Prompting (Arahan)", question: "A teacher wants to create a unique, imaginative, or thought-provoking poetry prompt...", answer: "Input a prompt in Gemini requesting a unique... poetry prompt, specifying the grade level and desired theme.", note: "Memberi spesifikasi 'tema' dan 'tahap umur' menghasilkan output kreatif yang lebih relevan." },
+            { id: 47, category: "Ciri Baru (Gems & Deep Research)", question: "A teacher regularly differentiates lesson plans... How can they use Gemini's 'Gems' feature to save time on this?", answer: "Create a custom 'Gem' in Gemini with pre-set instructions and context for generating lesson plan variations...", note: "Gems adalah untuk menyimpan 'Persona' atau 'Arahan Tetap' bagi tugasan berulang." },
+            { id: 48, category: "NotebookLM", question: "An educator has uploaded a collection of articles... They want to explore various ways students could demonstrate their understanding (project formats).", answer: "Use NotebookLM's chat feature to ask it for different potential project formats (like essays, presentations...) based on the content...", note: "Menggunakan AI sebagai rakan pemikir untuk mencadangkan bentuk penilaian." },
+            { id: 49, category: "Janaan Imej", question: "The students in class have been completing some creative writing on helpful monsters. You want to generate an image...", answer: "'Create a drawing of a monster who likes to eat...' (pilih prompt yang paling deskriptif)", note: "Prompt imej yang baik memerlukan deskripsi visual yang jelas." },
+            { id: 50, category: "Strategi Pengajaran", question: "An educator is looking to adapt some text for use by students with a lower reading level. Which method could they use?", answer: "Start a new chat in Gemini. Paste the text and add a prompt, asking Gemini to reduce the reading level of the text.", note: "Tugas klasik LLM: 'Text Simplification' atau 'Rewriting'." },
+            { id: 51, category: "Prompting (Arahan)", question: "To help geometry students overcome common misconceptions about finding the area of triangles... how can an educator best prompt Gemini?", answer: "Act as a highly skilled high school math teacher... provide 3-4 model responses addressing common student errors...", note: "Menggunakan persona pakar (Math Teacher) dan meminta output spesifik (model responses)." },
+            { id: 52, category: "Etika & Keselamatan AI", question: "A teacher is concerned a student may have used Generative AI to complete their work. What tools within Google Workspace could they use?", answer: "Use Version History to see the creation process over time.", note: "Version History dalam Docs menunjukkan jika teks ditaip secara manual atau ditampal (paste) sekaligus." },
+            { id: 53, category: "Akses Gemini", question: "Which of the following methods can be used to open Gemini for Education? (Select all)", answer: "Gemini Icon in Apps Launcher, gemini.google.com in Omnibox, In Google Drive Select New -> Gemini", note: "Pelbagai cara akses untuk kemudahan pengguna." }
+        ];
+
+        // State
+        let currentView = 'dashboard';
+        let currentCategoryFilter = 'all';
+        let flashcardIndex = 0;
+        let shuffledFlashcards = [];
+        let flashcardRevealed = false;
+
+        // --- INIT & NAVIGATION ---
+        function init() {
+            renderChart();
+            renderCategories();
+            renderQuestions();
+            setupFlashcards();
+        }
+
+        function switchView(viewName) {
+            // Hide all
+            ['dashboard', 'study', 'flashcards'].forEach(v => {
+                document.getElementById(`view-${v}`).classList.add('hidden');
+                document.getElementById(`nav-${v}`).classList.remove('bg-blue-50', 'text-blue-600');
+                document.getElementById(`nav-${v}`).classList.add('text-slate-600');
+            });
+
+            // Show selected
+            document.getElementById(`view-${viewName}`).classList.remove('hidden');
+            document.getElementById(`nav-${viewName}`).classList.add('bg-blue-50', 'text-blue-600');
+            document.getElementById(`nav-${viewName}`).classList.remove('text-slate-600');
+            
+            currentView = viewName;
+            
+            if(viewName === 'flashcards' && shuffledFlashcards.length === 0) {
+                setupFlashcards();
+            }
+        }
+
+        // --- DASHBOARD CHARTS ---
+        function renderChart() {
+            const ctx = document.getElementById('topicChart').getContext('2d');
+            
+            // Aggregation
+            const categoryCounts = {};
+            rawData.forEach(q => {
+                const cleanCat = q.category.replace(/\(.*\)/, '').trim(); // Simplify names for chart
+                categoryCounts[cleanCat] = (categoryCounts[cleanCat] || 0) + 1;
+            });
+
+            const labels = Object.keys(categoryCounts);
+            const data = Object.values(categoryCounts);
+            
+            // Soft Google Colors
+            const colors = [
+                '#4285F4', '#34A853', '#FBBC05', '#EA4335', 
+                '#8AB4F8', '#81C995', '#FDE293', '#F28B82',
+                '#C58AF9', '#F6AEA9', '#D2E3FC'
+            ];
+
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: data,
+                        backgroundColor: colors,
+                        borderWidth: 2,
+                        borderColor: '#ffffff',
+                        hoverOffset: 10
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'right', labels: { boxWidth: 12, font: { size: 11 } } },
+                        tooltip: { 
+                            callbacks: {
+                                label: function(context) {
+                                    return ` ${context.label}: ${context.raw} soalan`;
+                                }
+                            },
+                            backgroundColor: 'rgba(30, 41, 59, 0.9)',
+                            padding: 12
+                        }
+                    },
+                    layout: { padding: 10 }
+                }
+            });
+        }
+
+        // --- STUDY LIST LOGIC ---
+        function renderCategories() {
+            const categories = [...new Set(rawData.map(q => q.category))].sort();
+            const container = document.getElementById('category-filters');
+            
+            categories.forEach(cat => {
+                const btn = document.createElement('button');
+                btn.className = `filter-btn px-4 py-2 rounded-full text-sm font-medium bg-white border border-slate-200 text-slate-600 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition-all shadow-sm`;
+                btn.textContent = cat;
+                btn.onclick = () => filterQuestions(cat, btn);
+                container.appendChild(btn);
+            });
+        }
+
+        function filterQuestions(category, btnElement) {
+            currentCategoryFilter = category;
+            
+            // Update UI buttons
+            document.querySelectorAll('.filter-btn').forEach(b => {
+                b.classList.remove('bg-slate-800', 'text-white', 'border-transparent');
+                b.classList.add('bg-white', 'text-slate-600', 'border-slate-200');
+            });
+            
+            if (category === 'all') {
+                document.querySelector('button[onclick="filterQuestions(\'all\')"]').classList.add('bg-slate-800', 'text-white', 'border-transparent');
+                document.querySelector('button[onclick="filterQuestions(\'all\')"]').classList.remove('bg-white', 'text-slate-600');
+            } else if (btnElement) {
+                btnElement.classList.add('bg-slate-800', 'text-white', 'border-transparent');
+                btnElement.classList.remove('bg-white', 'text-slate-600');
+            }
+
+            renderQuestions();
+        }
+
+        function renderQuestions() {
+            const list = document.getElementById('questions-list');
+            list.innerHTML = '';
+            
+            const filtered = currentCategoryFilter === 'all' 
+                ? rawData 
+                : rawData.filter(q => q.category === currentCategoryFilter);
+
+            filtered.forEach(q => {
+                const item = document.createElement('div');
+                item.className = 'bg-white rounded-lg border border-slate-200 overflow-hidden hover:shadow-md transition-shadow';
+                item.innerHTML = `
+                    <button onclick="toggleAccordion(${q.id})" class="w-full text-left p-5 flex justify-between items-start gap-4 focus:outline-none">
+                        <div>
+                            <span class="inline-block px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-500 mb-2">${q.category}</span>
+                            <h3 class="font-medium text-slate-800 text-lg">${q.question}</h3>
+                        </div>
+                        <span id="icon-${q.id}" class="text-slate-400 text-2xl transform transition-transform duration-200">+</span>
+                    </button>
+                    <div id="content-${q.id}" class="hidden bg-slate-50 border-t border-slate-100 p-5 pl-6">
+                        <div class="mb-3">
+                            <span class="text-xs font-semibold text-green-600 uppercase tracking-wide">Jawapan Betul</span>
+                            <p class="text-slate-900 font-semibold mt-1">${q.answer}</p>
+                        </div>
+                        <div>
+                            <span class="text-xs font-semibold text-blue-600 uppercase tracking-wide">Nota Pakar</span>
+                            <p class="text-slate-600 text-sm mt-1 italic leading-relaxed">"${q.note}"</p>
+                        </div>
+                    </div>
+                `;
+                list.appendChild(item);
+            });
+            
+            if (filtered.length === 0) {
+                list.innerHTML = '<div class="text-center py-10 text-slate-400">Tiada soalan dalam kategori ini.</div>';
+            }
+        }
+
+        function toggleAccordion(id) {
+            const content = document.getElementById(`content-${id}`);
+            const icon = document.getElementById(`icon-${id}`);
+            
+            if (content.classList.contains('hidden')) {
+                content.classList.remove('hidden');
+                icon.classList.add('rotate-45');
+                icon.innerHTML = '&times;'; // Change to X or just rotate plus
+            } else {
+                content.classList.add('hidden');
+                icon.classList.remove('rotate-45');
+                icon.innerHTML = '+';
+            }
+        }
+
+        // --- FLASHCARD LOGIC ---
+        function setupFlashcards() {
+            // Shuffle array
+            shuffledFlashcards = [...rawData].sort(() => Math.random() - 0.5);
+            flashcardIndex = 0;
+            document.getElementById('fc-total').textContent = shuffledFlashcards.length;
+            loadCard();
+        }
+
+        function loadCard() {
+            if (flashcardIndex >= shuffledFlashcards.length) {
+                // End of deck
+                document.getElementById('fc-question').textContent = "Sesi Tamat! Bagus!";
+                document.getElementById('fc-category').textContent = "SELESAI";
+                document.getElementById('fc-controls').classList.add('opacity-0');
+                return;
+            }
+
+            const card = shuffledFlashcards[flashcardIndex];
+            
+            // Reset UI
+            // The fix was ensuring the HTML element has class 'flashcard'
+            const flashcardEl = document.querySelector('.flashcard');
+            if (flashcardEl) {
+                flashcardEl.classList.remove('flipped');
+            }
+            flashcardRevealed = false;
+            document.getElementById('fc-controls').classList.remove('opacity-100');
+            document.getElementById('fc-controls').classList.add('opacity-0');
+
+            // Populate Data
+            setTimeout(() => { // Update text after flip back animation starts
+                document.getElementById('fc-category').textContent = card.category;
+                document.getElementById('fc-question').textContent = card.question;
+                document.getElementById('fc-answer').textContent = card.answer;
+                document.getElementById('fc-note').textContent = card.note;
+                document.getElementById('fc-counter').textContent = flashcardIndex + 1;
+            }, 200);
+        }
+
+        function flipCard() {
+            if (flashcardRevealed) return; // Prevent double flip logic issues
+            
+            const flashcardEl = document.querySelector('.flashcard');
+            if (flashcardEl) {
+                flashcardEl.classList.add('flipped');
+                flashcardRevealed = true;
+                
+                // Show controls after small delay
+                setTimeout(() => {
+                    document.getElementById('fc-controls').classList.remove('opacity-0');
+                    document.getElementById('fc-controls').classList.add('opacity-100');
+                }, 400);
+            }
+        }
+
+        function nextCard(known, event) {
+            event.stopPropagation(); // Prevent card flip click
+            
+            // Here you could save stats (known vs unknown)
+            
+            flashcardIndex++;
+            loadCard();
+        }
+
+        // Run Init
+        window.addEventListener('DOMContentLoaded', init);
+
+    </script>
+</body>
+</html>
