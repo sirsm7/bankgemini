@@ -1,4 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap');
 
 body { 
     font-family: 'Inter', sans-serif; 
@@ -6,9 +7,10 @@ body {
     color: #334155; 
 }
 
-/* Custom Scrollbar */
+/* Custom Scrollbar (Global) */
 ::-webkit-scrollbar { 
     width: 8px; 
+    height: 8px; /* Added height for horizontal scroll */
 }
 ::-webkit-scrollbar-track { 
     background: #f1f5f9; 
@@ -89,4 +91,25 @@ body {
 .flashcard-back { 
     transform: rotateY(180deg); /* Pre-rotate back side */
     z-index: 1;
+}
+
+/* --- AI HELPER PAGE STYLES (Merged) --- */
+
+.font-mono { font-family: 'JetBrains Mono', monospace; }
+
+/* Dark Mode Scrollbar for AI Helper Terminals */
+.custom-scrollbar::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: #1e293b;
+    border-radius: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #475569;
+    border-radius: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #64748b;
 }
