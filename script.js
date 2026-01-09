@@ -1,6 +1,6 @@
 /**
  * GEMINI CERTIFICATION FOR EDUCATORS - BANK SOALAN INTERAKTIF
- * Versi: 2.0 (Final Verified)
+ * Versi: 2.1 (Dynamic Dashboard Support)
  * Tarikh Kemaskini: Jumaat, 9 Jan 2026
  * Status: Disemak Silang dengan HTML/CSS & Data Peperiksaan Sebenar
  */
@@ -462,9 +462,73 @@ let flashcardRevealed = false;
 
 // --- INIT & NAVIGATION ---
 function init() {
+    updateDashboardStats(); // PANGGILAN FUNGSI DINAMIK
     renderChart();
     renderCategories();
     renderQuestions();
+}
+
+// --- FUNGSI BARU: KIRA STATISTIK AUTOMATIK ---
+function updateDashboardStats() {
+    // 1. Kemaskini Jumlah Soalan (Dashboard & Intro)
+    const totalQ = rawData.length;
+    
+    // Update kad statistik
+    const statTotalQ = document.getElementById('stat-total-q');
+    if(statTotalQ) {
+        statTotalQ.textContent = totalQ;
+        statTotalQ.classList.remove('animate-pulse');
+    }
+
+    // Update teks intro
+    const statIntro = document.getElementById('stat-intro-count');
+    if(statIntro) {
+        statIntro.textContent = totalQ;
+    }
+
+    // Update teks di tab Bank Soalan
+    const statTotalQ2 = document.getElementById('stat-total-q-2');
+    if(statTotalQ2) statTotalQ2.textContent = totalQ;
+
+    // 2. Kemaskini Jumlah Kategori
+    // Bersihkan nama kategori daripada (extra text) jika ada
+    const uniqueCategories = new Set(rawData.map(q => q.category.replace(/\(.*\)/, '').trim()));
+    const statTotalCat = document.getElementById('stat-total-cat');
+    if(statTotalCat) {
+        statTotalCat.textContent = uniqueCategories.size;
+        statTotalCat.classList.remove('animate-pulse');
+    }
+
+    // 3. Cari Fokus Terbesar (Top Topic)
+    const categoryCounts = {};
+    rawData.forEach(q => {
+        const cleanCat = q.category.replace(/\(.*\)/, '').trim();
+        categoryCounts[cleanCat] = (categoryCounts[cleanCat] || 0) + 1;
+    });
+
+    let maxCat = '';
+    let maxCount = 0;
+
+    for (const [cat, count] of Object.entries(categoryCounts)) {
+        if (count > maxCount) {
+            maxCount = count;
+            maxCat = cat;
+        }
+    }
+
+    // Kira peratusan
+    const percentage = Math.round((maxCount / totalQ) * 100);
+
+    const statTopCat = document.getElementById('stat-top-cat');
+    const statTopDesc = document.getElementById('stat-top-cat-desc');
+
+    if(statTopCat) {
+        statTopCat.textContent = maxCat;
+        statTopCat.classList.remove('animate-pulse');
+    }
+    if(statTopDesc) {
+        statTopDesc.textContent = `~${percentage}% daripada soalan`;
+    }
 }
 
 function switchView(viewName) {

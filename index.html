@@ -22,7 +22,6 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between h-16">
                 <div class="flex items-center gap-3">
-                    <!-- Ganti kotak 'G' lama dengan Logo Rasmi Gemini -->
                     <img src="https://upload.wikimedia.org/wikipedia/commons/8/8a/Google_Gemini_logo.svg" alt="Google Gemini Logo" class="h-8 w-auto">
                     
                     <span class="font-semibold text-slate-800 text-lg tracking-tight hidden md:block">Nota Persediaan Gemini for Education</span>
@@ -47,27 +46,32 @@
                 <h1 class="text-3xl font-bold text-slate-900 mb-4">Pusat Kawalan Pembelajaran</h1>
                 <p class="text-slate-600 leading-relaxed">
                     Selamat datang ke hab interaktif untuk pensijilan <strong>Google Gemini for Education</strong>. 
-                    Aplikasi ini menganalisis 53 soalan utama daripada bank soalan untuk membantu anda memahami 
-                    struktur peperiksaan, menguasai topik kritikal seperti NotebookLM dan Etika AI, serta menguji kefahaman anda.
+                    Aplikasi ini menganalisis <strong id="stat-intro-count" class="text-blue-600">...</strong> soalan utama daripada bank soalan terkini untuk membantu anda memahami 
+                    struktur peperiksaan, menguasai topik kritikal, serta menguji kefahaman anda.
                 </p>
             </div>
 
-            <!-- Stats Grid -->
+            <!-- Stats Grid (DINAMIK) -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <!-- Stat 1: Jumlah Soalan -->
                 <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm card-hover">
                     <div class="text-sm font-medium text-slate-500 mb-1">Jumlah Soalan</div>
-                    <div class="text-4xl font-bold text-blue-600">53</div>
+                    <div id="stat-total-q" class="text-4xl font-bold text-blue-600 animate-pulse">...</div>
                     <div class="text-xs text-green-600 mt-2 font-medium bg-green-50 inline-block px-2 py-1 rounded">100% Data Disahkan</div>
                 </div>
+
+                <!-- Stat 2: Jumlah Kategori -->
                 <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm card-hover">
                     <div class="text-sm font-medium text-slate-500 mb-1">Kategori Utama</div>
-                    <div class="text-4xl font-bold text-indigo-600">11</div>
+                    <div id="stat-total-cat" class="text-4xl font-bold text-indigo-600 animate-pulse">...</div>
                     <div class="text-xs text-slate-400 mt-2">Topik Diversifikasi</div>
                 </div>
+
+                <!-- Stat 3: Fokus Terbesar (Auto-Calculate) -->
                 <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm card-hover">
                     <div class="text-sm font-medium text-slate-500 mb-1">Fokus Terbesar</div>
-                    <div class="text-3xl font-bold text-teal-600">NotebookLM</div>
-                    <div class="text-xs text-slate-400 mt-2">~20% daripada soalan</div>
+                    <div id="stat-top-cat" class="text-3xl font-bold text-teal-600 animate-pulse">...</div>
+                    <div id="stat-top-cat-desc" class="text-xs text-slate-400 mt-2">Sedang mengira data...</div>
                 </div>
             </div>
 
@@ -119,7 +123,7 @@
         <div id="view-study" class="hidden fade-in">
             <div class="mb-8">
                 <h2 class="text-2xl font-bold text-slate-900">Bank Soalan Lengkap</h2>
-                <p class="text-slate-600 mt-2">Teroka kesemua 53 soalan. Gunakan penapis di bawah untuk fokus kepada topik tertentu.</p>
+                <p class="text-slate-600 mt-2">Teroka kesemua <span id="stat-total-q-2">...</span> soalan. Gunakan penapis di bawah untuk fokus kepada topik tertentu.</p>
             </div>
 
             <!-- Filters -->
