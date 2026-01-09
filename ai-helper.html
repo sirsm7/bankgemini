@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pembantu AI Peperiksaan - Gemini Ed</title>
+    
+    <!-- FAVICON CONFIGURATION -->
+    <link rel="icon" href="icoppdag.png" type="image/jpeg">
+    
+    <!-- LIBRARIES -->
+    <script src="[https://cdn.tailwindcss.com](https://cdn.tailwindcss.com)"></script>
+    <link rel="stylesheet" href="style.css">
+    <!-- Font for Code -->
+    <link rel="preconnect" href="[https://fonts.googleapis.com](https://fonts.googleapis.com)">
+    <link href="[https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&display=swap](https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&display=swap)" rel="stylesheet">
+</head>
+<body class="bg-slate-900 min-h-screen flex flex-col font-sans text-slate-300">
+
+    <!-- Simple Nav -->
+    <nav class="border-b border-slate-800 bg-slate-950/50 backdrop-blur-md sticky top-0 z-50">
+        <div class="max-w-4xl mx-auto px-6 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <span class="text-2xl">✨</span>
+                <span class="font-bold text-white tracking-tight">Pembantu AI Peperiksaan</span>
+            </div>
+            <a href="index.html" class="text-sm font-medium text-slate-400 hover:text-white transition-colors flex items-center gap-2">
+                &larr; Kembali ke Dashboard
+            </a>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="flex-grow container mx-auto px-6 py-12 max-w-4xl">
+        
+        <div class="space-y-8">
+            <!-- Header -->
+            <div class="text-center space-y-4">
+                <h1 class="text-3xl md:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-blue-400">
+                    Master Prompt
+                </h1>
+                <p class="text-slate-400 max-w-2xl mx-auto">
+                    Gunakan prompt di bawah untuk menukar mana-mana AI (Gemini/ChatGPT/Claude) menjadi pakar peperiksaan Google. Salin, tampal, dan mula bertanya soalan.
+                </p>
+            </div>
+
+            <!-- Prompt Box -->
+            <div class="bg-slate-950 rounded-2xl border border-slate-800 overflow-hidden shadow-2xl relative group">
+                
+                <!-- Toolbar -->
+                <div class="flex items-center justify-between px-4 py-3 bg-slate-900 border-b border-slate-800">
+                    <div class="flex gap-2">
+                        <div class="w-3 h-3 rounded-full bg-red-500/20 border border-red-500/50"></div>
+                        <div class="w-3 h-3 rounded-full bg-yellow-500/20 border border-yellow-500/50"></div>
+                        <div class="w-3 h-3 rounded-full bg-green-500/20 border border-green-500/50"></div>
+                    </div>
+                    <span class="text-xs font-mono text-slate-500">system_prompt.txt</span>
+                </div>
+
+                <!-- Code Content -->
+                <div class="relative">
+                    <pre class="p-6 overflow-x-auto text-sm md:text-base leading-relaxed font-mono text-blue-100" style="font-family: 'Fira Code', monospace; white-space: pre-wrap;" id="promptText"># CONTEXT (Konteks)
+Anda adalah Jurutera Awan Google (Google Cloud Engineer) dan Pakar Produk Gemini for Google Workspace yang berada di tahap elit (Top 0.1%). Anda menghafal setiap fungsi, limitasi, dan kes penggunaan (use cases) bagi Duet AI dan Gemini dalam ekosistem Workspace.
+
+# OBJECTIVE (Objektif)
+Bantu pengguna lulus pensijilan dengan memberikan jawapan yang 100% tepat berdasarkan logik peperiksaan Google. Anda mesti membezakan antara jawapan yang "betul secara umum" dan jawapan yang "tepat mengikut skema Google".
+
+# STYLE (Gaya)
+Analitikal, Tepat (Precise), dan Minimalis.
+
+# TONE (Nada)
+Yakin, Tegas, dan Profesional.
+
+# AUDIENCE (Audiens)
+Calon peperiksaan yang sedang menjawab soalan dalam masa nyata (real-time). Mereka memerlukan kejelasan segera.
+
+# RESPONSE FORMAT (Format Respons)
+Setiap kali saya tampal (paste) soalan, respon dengan struktur berikut sahaja:
+
+[JAWAPAN PILIHAN]
+(Salin teks jawapan yang betul di sini)
+
+[JUMLAH PILIHAN]
+(Contoh: "Pilih 1 Sahaja" atau "Pilih Semua Yang Berkaitan")
+
+[SEBAB RINGKAS]
+(Satu ayat sahaja yang menerangkan kenapa jawapan ini betul berdasarkan fungsi Gemini, cth: "Gemini dalam Sheets digunakan untuk organize data, bukan create imej.")
+
+# ARAHAN KHUSUS
+1. Jangan gunakan simbol pelik atau formatting yang sukar dibaca.
+2. Jika soalan melibatkan "Prompting", pilih jawapan yang mengikut prinsip persona dan konteks.
+3. Kekalkan bahasa output dalam Bahasa Melayu, tetapi kekalkan istilah teknikal (seperti "Smart Fill", "Help me write") dalam Bahasa Inggeris.</pre>
+                    
+                    <!-- Copy Overlay -->
+                    <div class="absolute top-4 right-4">
+                        <button onclick="copyToClipboard()" id="copyBtn" class="flex items-center gap-2 bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-lg font-medium transition-all shadow-lg shadow-purple-900/50 active:scale-95">
+                            <svg xmlns="[http://www.w3.org/2000/svg](http://www.w3.org/2000/svg)" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+                            </svg>
+                            <span id="btnText">Salin Prompt</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Instructions -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 pt-6">
+                <div class="bg-slate-800/50 p-5 rounded-xl border border-slate-700">
+                    <div class="w-8 h-8 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center font-bold mb-3 border border-blue-500/30">1</div>
+                    <h3 class="font-semibold text-white mb-1">Salin Master Prompt</h3>
+                    <p class="text-sm text-slate-400">Klik butang "Salin Prompt" di atas untuk menyalin arahan penuh ke papan keratan (clipboard) anda.</p>
+                </div>
+                <div class="bg-slate-800/50 p-5 rounded-xl border border-slate-700">
+                    <div class="w-8 h-8 rounded-full bg-purple-500/20 text-purple-400 flex items-center justify-center font-bold mb-3 border border-purple-500/30">2</div>
+                    <h3 class="font-semibold text-white mb-1">Tampal di AI</h3>
+                    <p class="text-sm text-slate-400">Buka Gemini (atau ChatGPT) dan tampal teks ini sebagai mesej pertama untuk melatihnya.</p>
+                </div>
+                <div class="bg-slate-800/50 p-5 rounded-xl border border-slate-700">
+                    <div class="w-8 h-8 rounded-full bg-green-500/20 text-green-400 flex items-center justify-center font-bold mb-3 border border-green-500/30">3</div>
+                    <h3 class="font-semibold text-white mb-1">Mula Menjawab</h3>
+                    <p class="text-sm text-slate-400">Selepas AI faham, tampal soalan peperiksaan anda. Ia akan jawab mengikut skema yang tepat.</p>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <footer class="border-t border-slate-800 mt-12 py-8 bg-slate-950">
+        <div class="container mx-auto px-6 text-center text-slate-600 text-sm">
+            &copy; 2026 Gemini Ed Prep. Alat Bantuan Pembelajaran.
+        </div>
+    </footer>
+
+    <script>
+        function copyToClipboard() {
+            const promptText = document.getElementById('promptText').innerText;
+            
+            navigator.clipboard.writeText(promptText).then(() => {
+                const btn = document.getElementById('copyBtn');
+                const btnText = document.getElementById('btnText');
+                
+                // Visual Feedback
+                btn.classList.remove('bg-purple-600', 'hover:bg-purple-500');
+                btn.classList.add('bg-green-600', 'hover:bg-green-500');
+                btnText.innerText = "Berjaya Disalin!";
+                
+                // Reset after 2 seconds
+                setTimeout(() => {
+                    btn.classList.add('bg-purple-600', 'hover:bg-purple-500');
+                    btn.classList.remove('bg-green-600', 'hover:bg-green-500');
+                    btnText.innerText = "Salin Prompt";
+                }, 2000);
+            }).catch(err => {
+                console.error('Gagal menyalin:', err);
+                alert("Gagal menyalin. Sila pilih teks secara manual.");
+            });
+        }
+    </script>
+</body>
+</html>
