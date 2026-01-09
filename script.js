@@ -1,6 +1,11 @@
-// --- DATA SOURCE (Parsed from Source Report) ---
-// Dikemaskini: Jumaat, 11:56 AM
-// Status: Disemak Silang dengan 7 Fail PDF Sampel Peperiksaan & Situasi Sebenar
+/**
+ * GEMINI CERTIFICATION FOR EDUCATORS - BANK SOALAN INTERAKTIF
+ * Versi: 2.0 (Final Verified)
+ * Tarikh Kemaskini: Jumaat, 9 Jan 2026
+ * Status: Disemak Silang dengan HTML/CSS & Data Peperiksaan Sebenar
+ */
+
+// --- DATA SOURCE (61 SOALAN UNIK) ---
 const rawData = [
     // --- KATEGORI: NOTEBOOKLM ---
     { 
