@@ -75,15 +75,15 @@
                     <div class="group bg-slate-900/50 hover:bg-slate-800/60 p-4 rounded-xl border border-white/5 hover:border-purple-500/30 transition-all flex gap-4 items-start">
                         <div class="w-8 h-8 rounded-full bg-slate-800 text-blue-400 flex items-center justify-center font-bold text-sm border border-slate-700 shrink-0 group-hover:scale-110 transition-transform">2</div>
                         <div>
-                            <h3 class="font-semibold text-white text-sm">Latih AI Anda</h3>
-                            <p class="text-xs text-slate-400 mt-1">Tampal prompt ini sebagai mesej PERTAMA di Gemini/ChatGPT.</p>
+                            <h3 class="font-semibold text-white text-sm">Buka Gemini</h3>
+                            <p class="text-xs text-slate-400 mt-1">Gunakan butang pantas untuk membuka Gemini di tab baru.</p>
                         </div>
                     </div>
                     <div class="group bg-slate-900/50 hover:bg-slate-800/60 p-4 rounded-xl border border-white/5 hover:border-purple-500/30 transition-all flex gap-4 items-start">
                         <div class="w-8 h-8 rounded-full bg-slate-800 text-green-400 flex items-center justify-center font-bold text-sm border border-slate-700 shrink-0 group-hover:scale-110 transition-transform">3</div>
                         <div>
-                            <h3 class="font-semibold text-white text-sm">Tanya Soalan</h3>
-                            <p class="text-xs text-slate-400 mt-1">AI kini bersedia menjawab dengan format peperiksaan.</p>
+                            <h3 class="font-semibold text-white text-sm">Latih AI Anda</h3>
+                            <p class="text-xs text-slate-400 mt-1">Tampal prompt sebagai mesej PERTAMA, kemudian tanya soalan.</p>
                         </div>
                     </div>
                 </div>
@@ -110,18 +110,32 @@
 
                     <!-- Code Area -->
                     <div class="relative group">
-                        <!-- Copy Button (Floating) -->
-                        <div class="absolute top-4 right-4 z-20">
-                            <button onclick="copyToClipboard()" id="copyBtn" class="flex items-center gap-2 bg-purple-600 hover:bg-purple-500 text-white pl-3 pr-4 py-2 rounded-lg text-sm font-medium transition-all shadow-lg shadow-purple-900/50 hover:shadow-purple-500/30 active:scale-95 border border-white/10 group-hover:translate-y-0 translate-y-0 lg:translate-y-0">
+                        <!-- Action Buttons Container -->
+                        <div class="absolute top-4 right-4 z-20 flex gap-2">
+                            <!-- Button: Buka Gemini (New) -->
+                            <a href="https://gemini.google.com/app" target="_blank" class="hidden sm:flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white pl-3 pr-4 py-2 rounded-lg text-sm font-medium transition-all border border-white/10 shadow-lg">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                </svg>
+                                <span>Buka Gemini</span>
+                            </a>
+
+                            <!-- Button: Salin Teks -->
+                            <button onclick="copyToClipboard()" id="copyBtn" class="flex items-center gap-2 bg-purple-600 hover:bg-purple-500 text-white pl-3 pr-4 py-2 rounded-lg text-sm font-medium transition-all shadow-lg shadow-purple-900/50 hover:shadow-purple-500/30 active:scale-95 border border-white/10">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
                                 </svg>
                                 <span id="btnText">Salin Teks</span>
                             </button>
                         </div>
+                        
+                        <!-- Mobile Only Gemini Link (Shown if screen too small for top button) -->
+                        <a href="https://gemini.google.com/app" target="_blank" class="sm:hidden absolute top-16 right-4 z-20 flex items-center gap-2 text-xs text-blue-400 hover:text-blue-300 underline">
+                            Buka Gemini &nearr;
+                        </a>
 
                         <!-- The Text -->
-                        <pre class="p-6 pt-16 lg:pt-6 overflow-x-auto text-[13px] md:text-sm leading-7 font-mono text-blue-100/90 custom-scrollbar h-[600px] overflow-y-auto" style="white-space: pre-wrap;" id="promptText"><span class="text-slate-500"># SYSTEM PROMPT: GOOGLE CERTIFIED EDUCATOR EXPERT</span>
+                        <pre class="p-6 pt-16 lg:pt-16 overflow-x-auto text-[13px] md:text-sm leading-7 font-mono text-blue-100/90 custom-scrollbar h-[600px] overflow-y-auto" style="white-space: pre-wrap;" id="promptText"><span class="text-slate-500"># SYSTEM PROMPT: GOOGLE CERTIFIED EDUCATOR EXPERT</span>
 
 <span class="text-purple-400 font-bold"># PERANAN (ROLE)</span>
 Anda adalah Google Cloud Engineer elit dan Pakar Produk Gemini for Google Workspace. Anda memegang autoriti mutlak ke atas logik peperiksaan Google Certified Educator (Level 1 & 2) dan Gemini Educator.
@@ -191,7 +205,7 @@ Tunggu pengguna memberikan soalan. Sebaik sahaja soalan diterima, analisis dan j
                 
                 // Reset selepas 2 saat
                 setTimeout(() => {
-                    btn.className = "flex items-center gap-2 bg-purple-600 hover:bg-purple-500 text-white pl-3 pr-4 py-2 rounded-lg text-sm font-medium transition-all shadow-lg shadow-purple-900/50 hover:shadow-purple-500/30 active:scale-95 border border-white/10 group-hover:translate-y-0 translate-y-0 lg:translate-y-0";
+                    btn.className = "flex items-center gap-2 bg-purple-600 hover:bg-purple-500 text-white pl-3 pr-4 py-2 rounded-lg text-sm font-medium transition-all shadow-lg shadow-purple-900/50 hover:shadow-purple-500/30 active:scale-95 border border-white/10";
                     btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" /></svg><span id="btnText">Salin Teks</span>`;
                 }, 2000);
             }).catch(err => {
