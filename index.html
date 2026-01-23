@@ -5,13 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gemini for Education: Hab Persediaan Interaktif</title>
     
-    <!-- FAVICON CONFIGURATION -->
+    <!-- PWA CONFIGURATION -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#2563eb">
+    <link rel="apple-touch-icon" href="icoppdag.png">
+    
+    <!-- FAVICON -->
     <link rel="icon" href="icoppdag.png" type="image/jpeg">
     
     <!-- LIBRARIES -->
-    <!-- Tailwind CSS (Abaikan amaran console, ia normal untuk CDN) -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Chart.js untuk Graf -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <!-- External CSS -->
@@ -20,7 +23,7 @@
 <body class="bg-slate-50 min-h-screen flex flex-col">
 
     <!-- Navigation -->
-    <nav class="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
+    <nav class="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm safe-area-inset-top">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between h-16">
                 <div class="flex items-center gap-3">
@@ -51,6 +54,10 @@
                     Aplikasi ini menganalisis <strong id="stat-intro-count" class="text-blue-600">...</strong> soalan utama daripada bank soalan terkini untuk membantu anda memahami 
                     struktur peperiksaan, menguasai topik kritikal, serta menguji kefahaman anda.
                 </p>
+                <!-- Install PWA Button (Hidden by default, shown via JS if installable) -->
+                <button id="install-btn" class="hidden mt-4 bg-slate-900 text-white px-5 py-2 rounded-full text-sm font-medium hover:bg-slate-800 transition shadow-lg">
+                    📲 Pasang Aplikasi (Install App)
+                </button>
             </div>
 
             <!-- Stats Grid (DINAMIK - Data dikira oleh script.js) -->
@@ -119,8 +126,8 @@
                             <span class="text-2xl text-slate-300 group-hover:text-emerald-500">&nearr;</span>
                         </a>
 
-                        <!-- Butang 4: AI Exam Helper (NEW - SECRET LINK) -->
-                        <a href="ai-helper.html" target="_blank" class="w-full group p-4 border border-slate-200 rounded-lg hover:border-purple-400 hover:bg-purple-50 transition-all text-left flex items-center justify-between">
+                        <!-- Butang 4: AI Exam Helper -->
+                        <a href="ai-helper.html" class="w-full group p-4 border border-slate-200 rounded-lg hover:border-purple-400 hover:bg-purple-50 transition-all text-left flex items-center justify-between">
                             <div>
                                 <div class="font-medium text-slate-900 group-hover:text-purple-700 flex items-center gap-2">
                                     <span>Pembantu AI Peperiksaan</span>
@@ -229,6 +236,42 @@
             <p class="text-slate-400 text-xs mt-2">Bukan bahan rasmi Google. Untuk tujuan pembelajaran sahaja.</p>
         </div>
     </footer>
+
+    <!-- SERVICE WORKER REGISTRATION SCRIPT -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(registration => {
+                        console.log('Service Worker didaftarkan dengan skop:', registration.scope);
+                    })
+                    .catch(err => {
+                        console.error('Pendaftaran Service Worker gagal:', err);
+                    });
+            });
+        }
+
+        // Install Button Logic
+        let deferredPrompt;
+        const installBtn = document.getElementById('install-btn');
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            installBtn.classList.remove('hidden'); // Tunjuk butang jika boleh install
+        });
+
+        installBtn.addEventListener('click', (e) => {
+            installBtn.classList.add('hidden');
+            deferredPrompt.prompt();
+            deferredPrompt.userChoice.then((choiceResult) => {
+                if (choiceResult.outcome === 'accepted') {
+                    console.log('Pengguna terima pemasangan A2HS');
+                }
+                deferredPrompt = null;
+            });
+        });
+    </script>
 
     <!-- External JS (ORDER SANGAT PENTING: Data Dahulu, Kemudian Logic) -->
     <script src="questions.js"></script>

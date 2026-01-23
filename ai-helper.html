@@ -5,7 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pembantu AI Peperiksaan - Google Ed Prep</title>
     
-    <!-- FAVICON CONFIGURATION -->
+    <!-- PWA CONFIGURATION -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0f172a">
+    <link rel="apple-touch-icon" href="icoppdag.png">
     <link rel="icon" href="icoppdag.png" type="image/jpeg">
     
     <!-- LIBRARIES -->
@@ -93,7 +96,7 @@
                     </div>
                 </div>
 
-                <!-- NEW: EXAM REGISTRATION BUTTON (PILHAN C) -->
+                <!-- EXAM REGISTRATION BUTTON (PILIHAN C) -->
                 <div class="pt-2">
                     <a href="https://educertifications.google/" target="_blank" class="group relative block w-full">
                         <!-- Gradient Border Effect -->
@@ -219,6 +222,7 @@ Tunggu pengguna memberikan soalan. Sebaik sahaja soalan diterima, analisis dan j
         </div>
     </footer>
 
+    <!-- Service Worker Registration -->
     <script>
         function copyToClipboard() {
             // Ambil teks tulen sahaja (tanpa tag HTML span)
@@ -230,10 +234,8 @@ Tunggu pengguna memberikan soalan. Sebaik sahaja soalan diterima, analisis dan j
 
             navigator.clipboard.writeText(cleanText).then(() => {
                 const btn = document.getElementById('copyBtn');
-                const btnText = document.getElementById('btnText');
                 
                 // Animasi Sukses
-                const originalClasses = btn.className;
                 btn.className = "flex items-center gap-2 bg-emerald-600 text-white pl-3 pr-4 py-2 rounded-lg text-sm font-medium transition-all shadow-lg shadow-emerald-900/50 scale-105 border border-emerald-400/50";
                 btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg><span>Disalin!</span>`;
                 
@@ -245,6 +247,13 @@ Tunggu pengguna memberikan soalan. Sebaik sahaja soalan diterima, analisis dan j
             }).catch(err => {
                 console.error('Gagal menyalin:', err);
                 alert("Gagal menyalin. Sila pilih teks secara manual.");
+            });
+        }
+
+        // Register Service Worker for PWA
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js');
             });
         }
     </script>
