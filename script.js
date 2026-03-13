@@ -1,6 +1,6 @@
 /**
  * GOOGLE ED PREP - LOGIC CONTROLLER
- * Versi: 4.0 (Integrasi GCE L1 & L2)
+ * Versi: 4.1 (Pembaikan UI Task Tracker & Error Isolation)
  * * NOTA: Fail ini bergantung kepada 'questions.js' yang mesti dimuatkan
  * SEBELUM fail ini dalam HTML.
  */
@@ -18,21 +18,47 @@ let flashcardRevealed = false;
 
 // --- INIT & NAVIGATION ---
 function init() {
-    updateDashboardStats();
-    renderChart();
-    renderCategories();
-    renderQuestions();
-    
-    // Inisialisasi Modul Senarai Semak GCE L1 & L2
-    if (typeof tasksLevel1 !== 'undefined') {
-        renderTasks(tasksLevel1, 'l1-tasks-container', 'L1', 'l1-progress-text', 'l1-progress-bar');
+    // Pengasingan Ralat: Setiap modul berjalan secara bebas
+    try {
+        updateDashboardStats();
+    } catch (e) {
+        console.error("Ralat mengira statistik:", e);
     }
-    if (typeof tasksLevel2 !== 'undefined') {
-        renderTasks(tasksLevel2, 'l2-tasks-container', 'L2', 'l2-progress-text', 'l2-progress-bar');
+
+    try {
+        renderChart();
+    } catch (e) {
+        console.error("Ralat memuatkan carta (Semak sambungan internet CDN Chart.js):", e);
+    }
+
+    try {
+        renderCategories();
+        renderQuestions();
+    } catch (e) {
+        console.error("Ralat memuatkan Bank Soalan:", e);
+    }
+    
+    // Inisialisasi Modul Senarai Semak GCE L1
+    try {
+        if (typeof tasksLevel1 !== 'undefined') {
+            renderTasks(tasksLevel1, 'l1-tasks-container', 'L1', 'l1-progress-text', 'l1-progress-bar');
+        }
+    } catch (e) {
+        console.error("Ralat memuatkan Task Tracker L1:", e);
+    }
+
+    // Inisialisasi Modul Senarai Semak GCE L2
+    try {
+        if (typeof tasksLevel2 !== 'undefined') {
+            renderTasks(tasksLevel2, 'l2-tasks-container', 'L2', 'l2-progress-text', 'l2-progress-bar');
+        }
+    } catch (e) {
+        console.error("Ralat memuatkan Task Tracker L2:", e);
     }
 }
 
 function updateDashboardStats() {
+    if (typeof rawData === 'undefined') return;
     const totalQ = rawData.length;
     
     const statTotalQ = document.getElementById('stat-total-q');
@@ -140,7 +166,7 @@ function renderTasks(taskData, containerId, storagePrefix, progressTextId, progr
             const isChecked = localStorage.getItem(taskId) === 'true';
             if (isChecked) completedTasks++;
 
-            // Menyesuaikan warna interaktif berdasarkan tahap pensijilan
+            // Susunan Tailwind Peer dipastikan sebaris (siblings) supaya berfungsi
             const colorClasses = storagePrefix === 'L2' 
                 ? 'peer-checked:bg-indigo-600 peer-checked:border-indigo-600' 
                 : 'peer-checked:bg-blue-600 peer-checked:border-blue-600';
@@ -148,13 +174,14 @@ function renderTasks(taskData, containerId, storagePrefix, progressTextId, progr
             const taskItem = document.createElement('label');
             taskItem.className = 'flex items-start gap-3 cursor-pointer group';
             
+            // Perhatikan <input>, <div>, dan <span> berada selari di bawah label
             taskItem.innerHTML = `
-                <div class="relative flex items-center justify-center mt-0.5 shrink-0">
-                    <input type="checkbox" id="${taskId}" class="peer sr-only" ${isChecked ? 'checked' : ''} onchange="handleTaskToggle(this, '${containerId}', '${progressTextId}', '${progressBarId}', ${getTotalTasksCount(taskData)})">
-                    <div class="w-5 h-5 border-2 border-slate-300 rounded bg-white ${colorClasses} transition-all flex items-center justify-center shadow-sm">
-                        <svg class="w-3 h-3 text-white opacity-0 peer-checked:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
-                    </div>
+                <input type="checkbox" id="${taskId}" class="peer sr-only" ${isChecked ? 'checked' : ''} onchange="handleTaskToggle(this, '${containerId}', '${progressTextId}', '${progressBarId}', ${getTotalTasksCount(taskData)})">
+                
+                <div class="mt-0.5 shrink-0 w-5 h-5 border-2 border-slate-300 rounded bg-white ${colorClasses} flex items-center justify-center shadow-sm transition-all duration-200">
+                    <svg class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3.5" d="M5 13l4 4L19 7"></path></svg>
                 </div>
+                
                 <span class="text-sm font-medium text-slate-700 group-hover:text-slate-900 peer-checked:text-slate-400 peer-checked:line-through transition-all select-none leading-relaxed">${task}</span>
             `;
             taskList.appendChild(taskItem);
@@ -174,12 +201,13 @@ function getTotalTasksCount(taskData) {
 
 // Fungsi global untuk dicetuskan oleh input checkbox dalam HTML janaan dinamik
 window.handleTaskToggle = function(checkbox, containerId, progressTextId, progressBarId, totalTasks) {
+    // Simpan ke memori pelayar
     localStorage.setItem(checkbox.id, checkbox.checked);
     
     const container = document.getElementById(containerId);
     if(!container) return;
     
-    // Kira semula terus dari elemen DOM yang terkini
+    // Kira semula jumlah kotak yang telah ditanda secara langsung dari DOM
     const checkedBoxes = container.querySelectorAll('input[type="checkbox"]:checked').length;
     
     updateProgressUI(checkedBoxes, totalTasks, progressTextId, progressBarId);
