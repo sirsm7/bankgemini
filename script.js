@@ -1,6 +1,6 @@
 /**
  * GOOGLE ED PREP - LOGIC CONTROLLER (GAMIFIED EDITION)
- * Versi: 5.1 (Isolasi Storan, Sistem Misi & Lencana, Ketahanan Ralat Visual)
+ * Versi: 6.0 (Enjin Kuiz Interaktif MCQ, Integrasi Gamifikasi Penuh)
  * * NOTA: Fail ini bergantung kepada 'questions.js' yang mesti dimuatkan
  * SEBELUM fail ini dalam HTML.
  */
@@ -12,9 +12,16 @@ if (typeof rawData === 'undefined') {
 // State Aplikasi
 let currentView = 'dashboard';
 let currentCategoryFilter = 'all';
-let flashcardIndex = 0;
-let shuffledFlashcards = [];
-let flashcardRevealed = false;
+
+// State Kuiz Interaktif (Gamifikasi)
+let quizIndex = 0;
+let quizQuestions = [];
+let quizScore = 0;
+let quizStreak = 0;
+let quizMaxStreak = 0;
+let quizCorrectCount = 0;
+let isAnswered = false;
+const QUIZ_LENGTH = 15; // Jumlah soalan bagi setiap sesi kuiz
 
 // ==========================================
 // 1. PEMBUNGKUS STORAN SELAMAT (STORAGE WRAPPER)
@@ -361,7 +368,7 @@ function renderBadges(badges, containerId, levelPrefix) {
 // 5. PENUKARAN PAPARAN (VIEW SWITCHER)
 // ==========================================
 window.switchView = function(viewName) {
-    ['dashboard', 'study', 'flashcards'].forEach(v => {
+    ['dashboard', 'study', 'quiz'].forEach(v => {
         const viewEl = document.getElementById(`view-${v}`);
         const navEl = document.getElementById(`nav-${v}`);
         if(viewEl) viewEl.classList.add('hidden');
@@ -382,8 +389,9 @@ window.switchView = function(viewName) {
     
     currentView = viewName;
     
-    if(viewName === 'flashcards' && shuffledFlashcards.length === 0) {
-        setupFlashcards();
+    // Inisialisasi Kuiz secara automatik apabila tab dibuka buat kali pertama
+    if(viewName === 'quiz' && quizQuestions.length === 0) {
+        startQuiz();
     }
 };
 
@@ -492,77 +500,212 @@ window.toggleAccordion = function(id) {
 };
 
 // ==========================================
-// 7. KAD IMBASAN (FLASHCARDS)
+// 7. KUIZ INTERAKTIF (GAMIFIED MCQ)
 // ==========================================
-function setupFlashcards() {
-    if (typeof rawData === 'undefined') return;
-    shuffledFlashcards = [...rawData].sort(() => Math.random() - 0.5);
-    flashcardIndex = 0;
-    const fcTotal = document.getElementById('fc-total');
-    if(fcTotal) fcTotal.textContent = shuffledFlashcards.length;
-    loadCard();
+
+window.startQuiz = function() {
+    if (typeof rawData === 'undefined' || rawData.length === 0) return;
+
+    // Reset State Kuiz
+    quizScore = 0;
+    quizStreak = 0;
+    quizMaxStreak = 0;
+    quizCorrectCount = 0;
+    quizIndex = 0;
+    isAnswered = false;
+
+    // Adun (Shuffle) keseluruhan Bank Soalan dan potong mengikut QUIZ_LENGTH
+    let shuffled = [...rawData].sort(() => Math.random() - 0.5);
+    quizQuestions = shuffled.slice(0, Math.min(QUIZ_LENGTH, shuffled.length));
+
+    // Kemaskini UI Header
+    document.getElementById('quiz-total-num').textContent = quizQuestions.length;
+    updateQuizHeader();
+
+    // Pastikan UI paparan kuiz aktif dan skrin tamat disembunyikan
+    document.getElementById('quiz-play-area').classList.remove('hidden');
+    document.getElementById('quiz-end-screen').classList.add('hidden');
+    document.getElementById('quiz-header').classList.remove('hidden');
+
+    loadQuizQuestion();
+};
+
+function updateQuizHeader() {
+    document.getElementById('quiz-score').textContent = quizScore;
+    document.getElementById('quiz-streak').textContent = quizStreak;
+    document.getElementById('quiz-current-num').textContent = Math.min(quizIndex + 1, quizQuestions.length);
+
+    // Animasi Bar Kemajuan
+    const progressPercent = quizQuestions.length === 0 ? 0 : (quizIndex / quizQuestions.length) * 100;
+    document.getElementById('quiz-progress-bar').style.width = `${progressPercent}%`;
 }
 
-function loadCard() {
-    if (flashcardIndex >= shuffledFlashcards.length) {
-        document.getElementById('fc-question').textContent = "Sesi Tamat! Tumpuan Hebat!";
-        document.getElementById('fc-category').textContent = "SELESAI";
-        document.getElementById('fc-controls').classList.add('opacity-0');
-        
-        const flashcardEl = document.querySelector('.flashcard');
-        if (flashcardEl) flashcardEl.classList.remove('flipped');
-        flashcardRevealed = false;
+function loadQuizQuestion() {
+    // Semak jika kuiz telah tamat
+    if (quizIndex >= quizQuestions.length) {
+        endQuiz();
         return;
     }
 
-    const card = shuffledFlashcards[flashcardIndex];
+    isAnswered = false;
+    updateQuizHeader();
     
-    const flashcardEl = document.querySelector('.flashcard');
-    if (flashcardEl) {
-        flashcardEl.classList.remove('flipped');
-    }
-    flashcardRevealed = false;
+    const currentQ = quizQuestions[quizIndex];
     
-    const fcControls = document.getElementById('fc-controls');
-    if(fcControls) {
-        fcControls.classList.remove('opacity-100');
-        fcControls.classList.add('opacity-0');
-    }
-
-    setTimeout(() => { 
-        document.getElementById('fc-category').textContent = card.category;
-        document.getElementById('fc-question').textContent = card.question;
-        document.getElementById('fc-answer').textContent = card.answer;
-        document.getElementById('fc-note').textContent = card.note;
-        document.getElementById('fc-counter').textContent = flashcardIndex + 1;
-    }, 300);
+    // Sembunyikan kawasan Maklum Balas daripada soalan sebelumnya
+    document.getElementById('quiz-feedback').classList.add('hidden');
+    
+    // Papar Soalan & Kategori
+    document.getElementById('quiz-category').textContent = currentQ.category;
+    document.getElementById('quiz-question').textContent = currentQ.question;
+    
+    // Janakan Pilihan Jawapan (MCQ)
+    generateQuizOptions(currentQ);
 }
 
-window.flipCard = function() {
-    if (flashcardRevealed) return; 
+function generateQuizOptions(currentQ) {
+    const optionsContainer = document.getElementById('quiz-options');
+    optionsContainer.innerHTML = '';
     
-    const flashcardEl = document.querySelector('.flashcard');
-    if (flashcardEl) {
-        flashcardEl.classList.add('flipped');
-        flashcardRevealed = true;
+    // Algoritma Penjanaan Distractor: Cari 3 jawapan dari soalan lain yang tidak sama
+    let distractors = rawData
+        .filter(item => item.answer !== currentQ.answer)
+        .map(item => item.answer);
         
-        setTimeout(() => {
-            const fcControls = document.getElementById('fc-controls');
-            if(fcControls) {
-                fcControls.classList.remove('opacity-0');
-                fcControls.classList.add('opacity-100');
+    // Buang duplikasi jika wujud
+    distractors = [...new Set(distractors)];
+    
+    // Adun distractor dan pilih 3 teratas
+    distractors.sort(() => Math.random() - 0.5);
+    let selectedDistractors = distractors.slice(0, 3);
+    
+    // Gabungkan jawapan betul dengan distractors
+    let options = [{text: currentQ.answer, isCorrect: true}];
+    selectedDistractors.forEach(d => options.push({text: d, isCorrect: false}));
+    
+    // Adun kedudukan 4 pilihan ini agar jawapan betul tidak sentiasa di kedudukan 'A'
+    options.sort(() => Math.random() - 0.5);
+    
+    // Bina dan render Butang Pilihan ke dalam DOM
+    options.forEach((opt, idx) => {
+        const btn = document.createElement('button');
+        
+        // CSS asas untuk butang pilihan
+        btn.className = 'quiz-option-btn w-full text-left p-4 md:p-5 rounded-xl border-2 border-slate-200 bg-white hover:border-blue-400 hover:bg-blue-50 text-slate-700 font-semibold transition-all duration-200 shadow-sm flex items-center gap-4 group';
+        
+        // Label Abjad A, B, C, D
+        const letter = String.fromCharCode(65 + idx); 
+        
+        btn.innerHTML = `
+            <div class="w-10 h-10 rounded-lg bg-slate-100 border border-slate-200 text-slate-500 flex items-center justify-center font-bold shrink-0 group-hover:bg-blue-100 group-hover:text-blue-600 transition-colors option-letter">${letter}</div>
+            <span class="leading-relaxed text-[15px]">${opt.text}</span>
+        `;
+        
+        // Pasang Trigger Klik
+        btn.onclick = () => selectQuizAnswer(btn, opt.isCorrect, currentQ, optionsContainer);
+        optionsContainer.appendChild(btn);
+    });
+}
+
+window.selectQuizAnswer = function(selectedBtn, isCorrect, currentQ, container) {
+    // Halang pengguna daripada menekan butang lain selepas menjawab
+    if (isAnswered) return;
+    isAnswered = true;
+    
+    const allBtns = container.querySelectorAll('.quiz-option-btn');
+    
+    // Matikan interaksi untuk semua butang (Read-Only mode)
+    allBtns.forEach(btn => {
+        btn.classList.add('cursor-default', 'opacity-75');
+        btn.classList.remove('hover:border-blue-400', 'hover:bg-blue-50', 'shadow-sm');
+        btn.onclick = null;
+    });
+
+    // Deklarasi Elemen Maklum Balas
+    const feedbackEl = document.getElementById('quiz-feedback');
+    const feedbackIcon = document.getElementById('quiz-feedback-icon');
+    const feedbackTitle = document.getElementById('quiz-feedback-title');
+    const feedbackNote = document.getElementById('quiz-feedback-note');
+
+    if (isCorrect) {
+        // [ VISUAL JAWAPAN BETUL ]
+        selectedBtn.classList.remove('border-slate-200', 'bg-white', 'opacity-75');
+        selectedBtn.classList.add('border-emerald-500', 'bg-emerald-50', 'ring-4', 'ring-emerald-500/20', 'opacity-100', 'scale-[1.02]');
+        selectedBtn.querySelector('.option-letter').classList.add('bg-emerald-500', 'text-white', 'border-emerald-600');
+        
+        // Pengiraan Enjin Skor (Formula Asas + Bonus Streak)
+        quizStreak++;
+        if (quizStreak > quizMaxStreak) quizMaxStreak = quizStreak;
+        quizCorrectCount++;
+        
+        const pointsEarned = 100 + (quizStreak * 20);
+        quizScore += pointsEarned;
+        
+        // UI Maklum Balas (Positif)
+        feedbackEl.classList.add('bg-emerald-50', 'border-emerald-200');
+        feedbackEl.classList.remove('bg-red-50', 'border-red-200');
+        feedbackEl.classList.remove('hidden');
+        
+        feedbackIcon.className = 'w-14 h-14 rounded-full flex items-center justify-center flex-shrink-0 text-2xl font-bold shadow-md bg-emerald-500 text-white';
+        feedbackIcon.innerHTML = '✓';
+        feedbackTitle.className = 'text-xl font-black mb-2 tracking-tight text-emerald-800';
+        feedbackTitle.textContent = `Tepat! +${pointsEarned} Mata`;
+        
+    } else {
+        // [ VISUAL JAWAPAN SALAH ]
+        selectedBtn.classList.remove('border-slate-200', 'bg-white', 'opacity-75');
+        selectedBtn.classList.add('border-red-500', 'bg-red-50', 'opacity-100', 'scale-[0.98]');
+        selectedBtn.querySelector('.option-letter').classList.add('bg-red-500', 'text-white', 'border-red-600');
+        
+        // Pendedahan Automatik Jawapan Betul
+        allBtns.forEach(btn => {
+            if (btn.innerText.includes(currentQ.answer)) {
+                 btn.classList.remove('opacity-75', 'border-slate-200');
+                 btn.classList.add('border-emerald-500', 'border-dashed', 'bg-emerald-50/50', 'opacity-100');
             }
-        }, 600);
+        });
+
+        // Reset Streak ke Sifar
+        quizStreak = 0;
+        
+        // UI Maklum Balas (Negatif/Pembetulan)
+        feedbackEl.classList.add('bg-red-50', 'border-red-200');
+        feedbackEl.classList.remove('bg-emerald-50', 'border-emerald-200');
+        feedbackEl.classList.remove('hidden');
+        
+        feedbackIcon.className = 'w-14 h-14 rounded-full flex items-center justify-center flex-shrink-0 text-2xl font-bold shadow-md bg-red-500 text-white';
+        feedbackIcon.innerHTML = '✗';
+        feedbackTitle.className = 'text-xl font-black mb-2 tracking-tight text-red-800';
+        feedbackTitle.textContent = 'Kurang Tepat';
     }
+    
+    // Paparkan Nota Pakar untuk Pembelajaran Aktif
+    feedbackNote.textContent = currentQ.note;
+    updateQuizHeader();
 };
 
-window.nextCard = function(known, event) {
-    if(event) event.stopPropagation(); 
-    flashcardIndex++;
-    loadCard();
+window.nextQuizQuestion = function() {
+    quizIndex++;
+    loadQuizQuestion();
 };
+
+function endQuiz() {
+    // Sembunyikan Kawasan Kuiz, Paparkan Papan Skor Akhir
+    document.getElementById('quiz-play-area').classList.add('hidden');
+    document.getElementById('quiz-header').classList.add('hidden');
+    
+    const endScreen = document.getElementById('quiz-end-screen');
+    endScreen.classList.remove('hidden');
+    
+    // Suntikan Data Keputusan Akhir
+    document.getElementById('quiz-final-score').textContent = quizScore;
+    document.getElementById('quiz-final-streak').textContent = quizMaxStreak;
+    
+    const accuracy = quizQuestions.length === 0 ? 0 : Math.round((quizCorrectCount / quizQuestions.length) * 100);
+    document.getElementById('quiz-final-accuracy').textContent = `${accuracy}%`;
+}
 
 // ==========================================
-// START
+// START APP
 // ==========================================
 window.addEventListener('DOMContentLoaded', init);
