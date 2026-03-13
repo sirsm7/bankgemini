@@ -1,7 +1,7 @@
 /**
- * GEMINI CERTIFICATION FOR EDUCATORS - DATA SOURCE
- * Fail ini mengandungi bank soalan teori (Gemini) dan senarai tugasan praktikal (GCE L1 & L2).
- * Mudah untuk diselenggara tanpa mengganggu logik aplikasi.
+ * GOOGLE ED PREP - DATA SOURCE (GAMIFIED EDITION)
+ * Fail ini mengandungi bank soalan teori (Gemini) dan 
+ * senarai Misi Gamifikasi untuk tugasan praktikal (GCE L1 & L2).
  */
 
 const rawData = [
@@ -452,127 +452,133 @@ const rawData = [
 ];
 
 // ==========================================
-// TASKS: GOOGLE CERTIFIED EDUCATOR LEVEL 1
+// GAMIFIED MISSIONS: GOOGLE CERTIFIED EDUCATOR LEVEL 1
 // ==========================================
 const tasksLevel1 = [
     {
-        category: "Google Drive & Docs",
-        tasks: [
-            "Create a new document and add a title",
-            "Store different files of varying formats in one location",
-            "Create folders to upload files into folders and color code them",
-            "Automatically convert files to Google Drive formats when added",
-            "Organize files via drag and drop",
-            "Assign sharing permissions and invite colleagues to view, comment, or edit",
-            "Use Version history to retrieve missing/deleted text",
-            "Use the 'Find and replace' feature and dictionary tool",
-            "Change the editing mode to suggesting mode and leave comments",
-            "Require students to make a copy of the document"
-        ]
-    },
-    {
-        category: "Google Classroom",
+        id: "l1_m1",
+        missionTitle: "Misi 1: Ninja Bilik Darjah",
+        badgeName: "Classroom Ninja",
+        icon: "🏫",
         tasks: [
             "Create a new class, give it a name, and invite a co-teacher and students",
             "Create topics (e.g., 'Short Story Unit')",
             "Create an assignment, attach a file from Drive, and set points/due dates",
             "Make a copy of a document for each student in an assignment",
-            "Create a Quiz Assignment and use Grade importing",
-            "Create a Practice Set and add resources/Extra Help",
+            "Create a Quiz Assignment, add instructions, and use Grade importing",
+            "Create a Practice Set, add resources, and use Extra Help feature",
             "Create a rubric and provide feedback using it",
             "Differentiate assignments by assigning to specific students",
             "View the Class Insights tab and access originality reports"
         ]
     },
     {
-        category: "Google Forms",
+        id: "l1_m2",
+        missionTitle: "Misi 2: Arkitek Awan & Dokumen",
+        badgeName: "Cloud Architect",
+        icon: "📁",
         tasks: [
-            "Create a new form and collect verified email addresses",
-            "Add different question types (Multiple choice, Short answer, Dropdown, Paragraph)",
-            "Add a video and a file upload option",
-            "Add a second section and configure a question to branch to it (Go to section based on answer)",
-            "Set up Response validation with email format",
-            "Create a self-grading quiz, set correct answer choices, and add points",
-            "Add a confirmation message and release grades",
-            "Link the form to Google Sheets to collect responses"
+            "Store different files of varying formats in one location in Google Drive",
+            "Create folders, color code them, and organize files via drag and drop",
+            "Automatically convert files to Google Drive formats when added",
+            "Assign sharing permissions (view, comment, edit) and transfer ownership",
+            "Create a new Google Doc, add a title, and use Version history",
+            "Use the 'Find and replace' feature and dictionary tool in Docs",
+            "Change the editing mode to suggesting mode and leave comments",
+            "Create a self-grading quiz in Google Forms with points and release grades",
+            "Add different question types, video, file upload, and sections in Forms"
         ]
     },
     {
-        category: "Gmail, Chat & Meet",
+        id: "l1_m3",
+        missionTitle: "Misi 3: Komunikator Sarjana",
+        badgeName: "Master Communicator",
+        icon: "📧",
         tasks: [
             "Search for emails using operators like 'From:', 'To:', or 'Subject:'",
-            "Create a filter to automatically label emails",
-            "Enable Priority Inbox and snooze emails",
+            "Create a filter to automatically label emails and enable Priority Inbox",
+            "Snooze emails and thread emails together using Conversation view",
             "Create a Chat Space for staff to collaborate and share resources",
             "Generate and make visible a Google Meet link in Classroom",
-            "Use host controls (e.g., 'Trusted' access) and record a meeting",
-            "Share screen via a Chrome Tab in Google Meet"
+            "Use host controls (e.g., 'Trusted' access), share screen, and record a meeting",
+            "Create an event in Calendar, attach a document, and enable reminders",
+            "Set up appointment slots/schedule and share the booking link"
         ]
     },
     {
-        category: "Google Calendar & Sites",
+        id: "l1_m4",
+        missionTitle: "Misi 4: Juara Inklusiviti & Web",
+        badgeName: "Inclusion Champion",
+        icon: "🌐",
         tasks: [
-            "Create an event, attach a document, and enable reminders",
-            "Set up an appointment schedule/slots and share the link",
-            "Create a new calendar and add a Google Meet to an event",
-            "Create a Google Site and add pages/subpages",
-            "Publish a website and control edit/view permissions (make it Public)"
+            "Create a Google Site, add pages/subpages, and link external sites",
+            "Update the font of an entire site and link thumbnails",
+            "Publish a website and control edit/view permissions (make it Public)",
+            "Activate and utilize ChromeVox for visually impaired students",
+            "Enable and configure Full-screen magnifier via Accessibility settings"
         ]
     }
 ];
 
 // ==========================================
-// TASKS: GOOGLE CERTIFIED EDUCATOR LEVEL 2
+// GAMIFIED MISSIONS: GOOGLE CERTIFIED EDUCATOR LEVEL 2
 // ==========================================
 const tasksLevel2 = [
     {
-        category: "Advanced Google Sheets",
+        id: "l2_m1",
+        missionTitle: "Misi 1: Pakar Analisis Data",
+        badgeName: "Data Master",
+        icon: "📊",
         tasks: [
-            "Leverage column stats to understand data distribution",
-            "Create and configure a Pivot Table to summarize data",
+            "Leverage column stats in Google Sheets to understand data distribution",
+            "Create and configure a Pivot Table to summarize data numerically",
             "Apply conditional formatting using color scales or custom rules",
-            "Protect sheets and specific ranges from being edited",
+            "Protect sheets and specific ranges from being edited by collaborators",
             "Use advanced formulas (VLOOKUP, IF, COUNTIF) to analyze student data",
-            "Create dynamic charts to visualize student performance"
+            "Create dynamic charts to visualize student performance",
+            "Transfer ownership of a Google Sheet to another user"
         ]
     },
     {
-        category: "Advanced Google Forms & Classroom",
+        id: "l2_m2",
+        missionTitle: "Misi 2: Strategis Kelas Lanjutan",
+        badgeName: "Advanced Strategist",
+        icon: "🎯",
         tasks: [
             "Utilize Forms for personalized learning pathways (advanced branching)",
-            "Analyze student understanding using Form response data in Sheets",
-            "Use Classroom data/insights to guide instructional decisions",
-            "Flip or blend classroom instruction using video integrations and Edpuzzle/practice sets",
-            "Design interactive Rubrics for complex project-based learning assessments"
+            "Analyze student understanding using Form response data linked to Sheets",
+            "Use Classroom analytics/insights to guide instructional decisions",
+            "Design interactive Rubrics for complex project-based learning assessments",
+            "Add a Google Form from Drive to a new assignment in Classroom",
+            "Set max file limits and allow only specific file types (e.g., images) in Forms"
         ]
     },
     {
-        category: "Interactive Slides & Sites",
+        id: "l2_m3",
+        missionTitle: "Misi 3: Pereka Interaktif",
+        badgeName: "Interactive Designer",
+        icon: "🎨",
         tasks: [
-            "Utilize Google Slides features to enhance the classroom experience (interactive lessons)",
+            "Utilize Google Slides features to enhance the classroom experience",
+            "Use the @ key in comments to assign specific slides to collaborators",
+            "Insert an image placeholder and customize the title slide",
             "Embed videos, audio, and interactive links into Slides",
-            "Design a comprehensive e-portfolio using Google Sites",
-            "Embed external content (Maps, Calendars, Docs) directly into Google Sites",
+            "Design a comprehensive e-portfolio or interactive lesson using Google Sites",
             "Manage advanced site publishing settings and custom domains"
         ]
     },
     {
-        category: "Workflow Automation & Communication",
+        id: "l2_m4",
+        missionTitle: "Misi 4: Jurutera Automasi",
+        badgeName: "Automation Engineer",
+        icon: "⚙️",
         tasks: [
             "Utilize automation to connect with the school community more effectively",
             "Set up email templates and advanced filtering in Gmail",
-            "Use Google Workspace tools to schedule and track parent-teacher communications",
-            "Integrate Calendar with Tasks and Keep for complex project management",
-            "Use Google Meet features (Breakout rooms, Q&A, Polls) for extended learning"
-        ]
-    },
-    {
-        category: "Accessibility & Chrome OS",
-        tasks: [
-            "Activate and utilize ChromeVox for visually impaired students",
-            "Enable and configure Full-screen magnifier",
+            "Integrate Google Calendar with Google Tasks to schedule due dates",
+            "Use Google Meet features (Breakout rooms, Q&A, Polls) for extended learning",
             "Utilize closed captions and translated captions in Google Meet",
-            "Manage Chrome extensions to support diverse learner needs"
+            "Host a synchronous virtual training for guardians using Meet"
         ]
     }
 ];

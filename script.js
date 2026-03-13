@@ -1,6 +1,6 @@
 /**
- * GOOGLE ED PREP - LOGIC CONTROLLER
- * Versi: 4.2 (Isolasi Storan, Pembaikan CSS Tailwind, & Ketahanan Ralat)
+ * GOOGLE ED PREP - LOGIC CONTROLLER (GAMIFIED EDITION)
+ * Versi: 5.0 (Isolasi Storan, Sistem Misi & Lencana, Ketahanan Ralat)
  * * NOTA: Fail ini bergantung kepada 'questions.js' yang mesti dimuatkan
  * SEBELUM fail ini dalam HTML.
  */
@@ -62,23 +62,23 @@ function init() {
     
     try {
         if (typeof tasksLevel1 !== 'undefined') {
-            renderTasks(tasksLevel1, 'l1-tasks-container', 'L1', 'l1-progress-text', 'l1-progress-bar');
+            initMissions(tasksLevel1, 'l1-missions-grid', 'L1');
         }
     } catch (e) {
-        console.error("Ralat memuatkan Task Tracker L1:", e);
+        console.error("Ralat memuatkan Misi L1:", e);
     }
 
     try {
         if (typeof tasksLevel2 !== 'undefined') {
-            renderTasks(tasksLevel2, 'l2-tasks-container', 'L2', 'l2-progress-text', 'l2-progress-bar');
+            initMissions(tasksLevel2, 'l2-missions-grid', 'L2');
         }
     } catch (e) {
-        console.error("Ralat memuatkan Task Tracker L2:", e);
+        console.error("Ralat memuatkan Misi L2:", e);
     }
 }
 
 // ==========================================
-// 3. LOGIK PAPARAN: DASHBOARD
+// 3. LOGIK PAPARAN: DASHBOARD (STATISTIK GEMINI)
 // ==========================================
 function updateDashboardStats() {
     if (typeof rawData === 'undefined') return;
@@ -119,7 +119,6 @@ function updateDashboardStats() {
         }
     }
 
-    const percentage = totalQ > 0 ? Math.round((maxCount / totalQ) * 100) : 0;
     const statTopCat = document.getElementById('stat-top-cat');
     const statTopDesc = document.getElementById('stat-top-cat-desc');
 
@@ -127,7 +126,7 @@ function updateDashboardStats() {
         statTopCat.textContent = maxCat;
         statTopCat.classList.remove('animate-pulse');
     }
-    if(statTopDesc) statTopDesc.textContent = `~${percentage}% daripada soalan`;
+    if(statTopDesc) statTopDesc.textContent = `Pecahan tertinggi dari keseluruhan topik.`;
 }
 
 function renderChart() {
@@ -144,9 +143,9 @@ function renderChart() {
     const labels = Object.keys(categoryCounts);
     const data = Object.values(categoryCounts);
     const colors = [
-        '#4285F4', '#34A853', '#FBBC05', '#EA4335', 
-        '#8AB4F8', '#81C995', '#FDE293', '#F28B82',
-        '#C58AF9', '#F6AEA9', '#D2E3FC'
+        '#2563eb', '#06b6d4', '#8b5cf6', '#d946ef', 
+        '#10b981', '#f59e0b', '#f43f5e', '#3b82f6',
+        '#6366f1', '#14b8a6', '#84cc16'
     ];
 
     new Chart(ctx, {
@@ -156,21 +155,23 @@ function renderChart() {
             datasets: [{
                 data: data,
                 backgroundColor: colors,
-                borderWidth: 2,
-                borderColor: '#ffffff',
-                hoverOffset: 10
+                borderWidth: 0,
+                hoverOffset: 15
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            cutout: '75%',
             plugins: {
-                legend: { position: 'right', labels: { boxWidth: 12, font: { size: 11 }, padding: 15 } },
+                legend: { position: 'right', labels: { boxWidth: 12, font: { size: 12, family: "'Inter', sans-serif" }, padding: 20 } },
                 tooltip: { 
                     callbacks: { label: function(context) { return ` ${context.label}: ${context.raw} soalan`; } },
-                    backgroundColor: 'rgba(15, 23, 42, 0.9)', 
-                    padding: 12,
-                    cornerRadius: 8
+                    backgroundColor: 'rgba(15, 23, 42, 0.95)', 
+                    padding: 14,
+                    cornerRadius: 10,
+                    titleFont: { size: 13, family: "'Inter', sans-serif" },
+                    bodyFont: { size: 13, family: "'Inter', sans-serif" }
                 }
             },
             layout: { padding: 10 }
@@ -179,86 +180,160 @@ function renderChart() {
 }
 
 // ==========================================
-// 4. LOGIK PENJEJAK KEMAJUAN TUGASAN (TASK TRACKER L1 & L2)
+// 4. LOGIK GAMIFIKASI (MISI L1 & L2)
 // ==========================================
-function renderTasks(taskData, containerId, storagePrefix, progressTextId, progressBarId) {
-    const container = document.getElementById(containerId);
-    if (!container || !taskData) return;
+function initMissions(missionData, gridContainerId, levelPrefix) {
+    const container = document.getElementById(gridContainerId);
+    if (!container || !missionData) return;
 
     container.innerHTML = '';
-    let totalTasks = 0;
-    let completedTasks = 0;
 
-    taskData.forEach((section, sectionIndex) => {
-        const sectionDiv = document.createElement('div');
-        sectionDiv.className = 'mb-6';
-        
-        const sectionTitle = document.createElement('h4');
-        sectionTitle.className = 'font-bold text-slate-800 mb-3 border-b border-slate-200 pb-2 text-base';
-        sectionTitle.textContent = section.category;
-        sectionDiv.appendChild(sectionTitle);
+    // Penentuan Tema Warna Berdasarkan Tahap
+    const theme = levelPrefix === 'L1' ? {
+        iconStyle: 'bg-blue-50 text-blue-600',
+        barStyle: 'bg-gradient-to-r from-blue-500 to-cyan-400',
+        peerStyle: 'peer-checked:bg-cyan-500 peer-checked:border-cyan-500'
+    } : {
+        iconStyle: 'bg-indigo-50 text-indigo-600',
+        barStyle: 'bg-gradient-to-r from-indigo-500 to-purple-500',
+        peerStyle: 'peer-checked:bg-purple-500 peer-checked:border-purple-500'
+    };
 
-        const taskList = document.createElement('div');
-        taskList.className = 'space-y-3 pl-1';
+    missionData.forEach((mission, missionIndex) => {
+        const card = document.createElement('div');
+        card.className = 'bg-white rounded-2xl border border-slate-200 p-6 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group';
 
-        section.tasks.forEach((task, taskIndex) => {
-            totalTasks++;
-            const taskId = `${storagePrefix}_${sectionIndex}_${taskIndex}`;
-            const isChecked = getFromStorage(taskId) === 'true';
-            if (isChecked) completedTasks++;
-
-            // PEMBEDAHAN: Struktur DOM diperbetulkan untuk serasi dengan Tailwind 'peer'.
-            // Input, kotak hiasan, dan span teks MESTILAH berada dalam hirarki sibling yang sama.
-            const colorClasses = storagePrefix === 'L2' 
-                ? 'peer-checked:bg-indigo-600 peer-checked:border-indigo-600' 
-                : 'peer-checked:bg-blue-600 peer-checked:border-blue-600';
-
-            const taskItem = document.createElement('label');
-            taskItem.className = 'flex items-start gap-3 cursor-pointer group relative';
-            
-            // Optical Illusion Checkmark: svg berwarna putih. Apabila background box bertukar gelap, svg akan jelas kelihatan.
-            taskItem.innerHTML = `
-                <input type="checkbox" id="${taskId}" class="peer sr-only" ${isChecked ? 'checked' : ''} onchange="handleTaskToggle(this, '${containerId}', '${progressTextId}', '${progressBarId}', ${getTotalTasksCount(taskData)})">
-                
-                <div class="mt-0.5 shrink-0 w-5 h-5 border-2 border-slate-300 rounded bg-white ${colorClasses} flex items-center justify-center shadow-sm transition-all duration-200">
-                    <svg class="w-3.5 h-3.5 text-white opacity-0 peer-checked:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3.5" d="M5 13l4 4L19 7"></path></svg>
+        let html = `
+            <div class="flex items-center gap-4 mb-5">
+                <div class="w-12 h-12 rounded-xl ${theme.iconStyle} flex items-center justify-center text-2xl shadow-sm transform group-hover:scale-110 transition-transform">${mission.icon}</div>
+                <div>
+                    <h3 class="font-bold text-slate-800 text-lg leading-tight">${mission.missionTitle}</h3>
+                    <p class="text-xs text-slate-400 font-medium mt-0.5">Lencana: ${mission.badgeName}</p>
                 </div>
-                
-                <span class="text-sm font-medium text-slate-700 group-hover:text-slate-900 peer-checked:text-slate-400 peer-checked:line-through transition-all select-none leading-relaxed">${task}</span>
+            </div>
+            
+            <div class="mb-5">
+                <div class="flex justify-between text-xs mb-1.5 font-bold uppercase tracking-wider text-slate-400">
+                    <span>Kemajuan Misi</span>
+                    <span id="progress-text-${mission.id}" class="${levelPrefix === 'L1' ? 'text-blue-500' : 'text-indigo-500'}">0%</span>
+                </div>
+                <div class="w-full bg-slate-100 rounded-full h-2 shadow-inner overflow-hidden">
+                    <div id="progress-bar-${mission.id}" class="${theme.barStyle} h-full rounded-full transition-all duration-700 ease-out" style="width: 0%"></div>
+                </div>
+            </div>
+            
+            <div class="space-y-3.5 pl-1">
+        `;
+
+        mission.tasks.forEach((task, taskIndex) => {
+            const taskId = `${mission.id}_task_${taskIndex}`;
+            const isChecked = getFromStorage(taskId) === 'true';
+
+            html += `
+                <label class="flex items-start gap-3 cursor-pointer group/item relative">
+                    <input type="checkbox" id="${taskId}" class="peer sr-only" ${isChecked ? 'checked' : ''} 
+                        onchange="handleTaskChange('${taskId}', '${levelPrefix}')">
+                    
+                    <div class="mt-0.5 shrink-0 w-5 h-5 border-2 border-slate-300 rounded bg-white ${theme.peerStyle} flex items-center justify-center shadow-sm transition-all duration-200 group-hover/item:border-slate-400">
+                        <svg class="w-3.5 h-3.5 text-white opacity-0 peer-checked:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+                    </div>
+                    
+                    <span class="text-sm font-medium text-slate-600 peer-checked:text-slate-400 peer-checked:line-through transition-all select-none leading-relaxed group-hover/item:text-slate-900">${task}</span>
+                </label>
             `;
-            taskList.appendChild(taskItem);
         });
 
-        sectionDiv.appendChild(taskList);
-        container.appendChild(sectionDiv);
+        html += `</div>`;
+        card.innerHTML = html;
+        container.appendChild(card);
     });
 
-    updateProgressUI(completedTasks, totalTasks, progressTextId, progressBarId);
+    // Kira status permulaan (Initial state on load)
+    updateGamificationState(levelPrefix);
 }
 
-function getTotalTasksCount(taskData) {
-    return taskData.reduce((total, section) => total + section.tasks.length, 0);
-}
-
-window.handleTaskToggle = function(checkbox, containerId, progressTextId, progressBarId, totalTasks) {
-    // Simpan ke storan dengan Wrapper
-    saveToStorage(checkbox.id, checkbox.checked);
-    
-    const container = document.getElementById(containerId);
-    if(!container) return;
-    
-    // Kira secara real-time dari Checkbox di dalam DOM
-    const checkedBoxes = container.querySelectorAll('input[type="checkbox"]:checked').length;
-    updateProgressUI(checkedBoxes, totalTasks, progressTextId, progressBarId);
+// Fungsi Pemicu Apabila Checkbox Ditekan
+window.handleTaskChange = function(checkboxId, levelPrefix) {
+    const checkbox = document.getElementById(checkboxId);
+    if(checkbox) {
+        saveToStorage(checkboxId, checkbox.checked);
+        updateGamificationState(levelPrefix);
+    }
 };
 
-function updateProgressUI(completed, total, textId, barId) {
-    const percentage = total === 0 ? 0 : Math.round((completed / total) * 100);
-    const textEl = document.getElementById(textId);
-    const barEl = document.getElementById(barId);
-    
-    if (textEl) textEl.textContent = `${percentage}%`;
-    if (barEl) barEl.style.width = `${percentage}%`;
+// Enjin Pengiraan Markah & Pengurusan DOM Misi
+function updateGamificationState(levelPrefix) {
+    const missionData = levelPrefix === 'L1' ? tasksLevel1 : tasksLevel2;
+    const progressTextId = levelPrefix === 'L1' ? 'l1-progress-text' : 'l2-progress-text';
+    const progressBarId = levelPrefix === 'L1' ? 'l1-progress-bar' : 'l2-progress-bar';
+    const badgesContainerId = levelPrefix === 'L1' ? 'l1-badges-container' : 'l2-badges-container';
+
+    let totalLevelTasks = 0;
+    let completedLevelTasks = 0;
+    let unlockedBadges = [];
+
+    missionData.forEach(mission => {
+        let missionTotal = mission.tasks.length;
+        let missionCompleted = 0;
+
+        mission.tasks.forEach((task, taskIndex) => {
+            totalLevelTasks++;
+            const taskId = `${mission.id}_task_${taskIndex}`;
+            if (getFromStorage(taskId) === 'true') {
+                completedLevelTasks++;
+                missionCompleted++;
+            }
+        });
+
+        // Kemas kini UI Bar Misi Individu
+        const mProgText = document.getElementById(`progress-text-${mission.id}`);
+        const mProgBar = document.getElementById(`progress-bar-${mission.id}`);
+        const mPercentage = missionTotal === 0 ? 0 : Math.round((missionCompleted / missionTotal) * 100);
+
+        if (mProgText) mProgText.textContent = `${mPercentage}%`;
+        if (mProgBar) mProgBar.style.width = `${mPercentage}%`;
+
+        // Pengesahan Kunci Lencana (Unlock Logic)
+        if (missionCompleted === missionTotal && missionTotal > 0) {
+            unlockedBadges.push(mission);
+        }
+    });
+
+    // Kemas kini UI Bar Utama Keseluruhan Tahap
+    const overallPercentage = totalLevelTasks === 0 ? 0 : Math.round((completedLevelTasks / totalLevelTasks) * 100);
+    const oProgText = document.getElementById(progressTextId);
+    const oProgBar = document.getElementById(progressBarId);
+
+    if (oProgText) oProgText.textContent = `${overallPercentage}%`;
+    if (oProgBar) oProgBar.style.width = `${overallPercentage}%`;
+
+    // Render Koleksi Lencana
+    renderBadges(unlockedBadges, badgesContainerId, levelPrefix);
+}
+
+function renderBadges(badges, containerId, levelPrefix) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    if (badges.length === 0) {
+        container.innerHTML = `<p class="text-sm font-medium text-slate-500/70 italic bg-slate-800/50 px-4 py-2 rounded-lg border border-slate-700 border-dashed inline-block">Belum ada lencana yang berjaya dibuka.</p>`;
+        return;
+    }
+
+    container.innerHTML = '';
+    const gradient = levelPrefix === 'L1' ? 'from-blue-500 to-cyan-400' : 'from-indigo-500 to-purple-500';
+    const borderGlow = levelPrefix === 'L1' ? 'border-cyan-500/50 shadow-cyan-500/20' : 'border-purple-500/50 shadow-purple-500/20';
+
+    badges.forEach(badge => {
+        container.innerHTML += `
+            <div class="flex items-center gap-2 bg-slate-800 rounded-full pr-4 pl-1.5 py-1.5 border ${borderGlow} shadow-lg animate-[fadeIn_0.5s_ease-out] transform hover:scale-105 transition-transform cursor-default group" title="Misi '${badge.missionTitle}' Selesai!">
+                <div class="w-7 h-7 rounded-full bg-gradient-to-br ${gradient} flex items-center justify-center text-sm shadow-inner shadow-white/30 group-hover:rotate-12 transition-transform">
+                    ${badge.icon}
+                </div>
+                <span class="text-xs font-bold text-white tracking-wide">${badge.badgeName}</span>
+            </div>
+        `;
+    });
 }
 
 // ==========================================
@@ -301,7 +376,7 @@ function renderCategories() {
     
     categories.forEach(cat => {
         const btn = document.createElement('button');
-        btn.className = `filter-btn px-4 py-2 rounded-full text-sm font-medium bg-white border border-slate-200 text-slate-600 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition-all shadow-sm`;
+        btn.className = `filter-btn px-5 py-2.5 rounded-full text-sm font-bold bg-white border-2 border-slate-100 text-slate-600 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition-all shadow-sm`;
         btn.textContent = cat;
         btn.onclick = () => filterQuestions(cat, btn);
         container.appendChild(btn);
@@ -313,7 +388,7 @@ window.filterQuestions = function(category, btnElement) {
     
     document.querySelectorAll('.filter-btn').forEach(b => {
         b.classList.remove('bg-slate-800', 'text-white', 'border-transparent');
-        b.classList.add('bg-white', 'text-slate-600', 'border-slate-200');
+        b.classList.add('bg-white', 'text-slate-600', 'border-slate-100');
     });
     
     if (category === 'all') {
@@ -342,29 +417,31 @@ function renderQuestions() {
 
     filtered.forEach(q => {
         const item = document.createElement('div');
-        item.className = 'bg-white rounded-lg border border-slate-200 overflow-hidden hover:shadow-md transition-shadow duration-300';
+        item.className = 'bg-white rounded-2xl border border-slate-200 overflow-hidden hover:shadow-lg transition-shadow duration-300 relative';
         item.innerHTML = `
-            <button onclick="toggleAccordion(${q.id})" class="w-full text-left p-5 flex justify-between items-start gap-4 focus:outline-none group">
+            <button onclick="toggleAccordion(${q.id})" class="w-full text-left p-6 flex justify-between items-start gap-4 focus:outline-none group">
                 <div class="flex-grow">
-                    <span class="inline-block px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-500 mb-2 border border-slate-200">${q.category}</span>
-                    <h3 class="font-medium text-slate-800 text-lg group-hover:text-blue-700 transition-colors">${q.question}</h3>
+                    <span class="inline-block px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-slate-100 text-slate-500 mb-3 border border-slate-200">${q.category}</span>
+                    <h3 class="font-bold text-slate-800 text-lg group-hover:text-blue-700 transition-colors leading-snug">${q.question}</h3>
                 </div>
-                <span id="icon-${q.id}" class="text-slate-400 text-2xl transform transition-transform duration-300 flex-shrink-0 bg-slate-50 w-8 h-8 flex items-center justify-center rounded-full group-hover:bg-blue-50 group-hover:text-blue-500">+</span>
+                <span id="icon-${q.id}" class="text-slate-400 text-2xl transform transition-transform duration-300 flex-shrink-0 bg-slate-50 w-10 h-10 flex items-center justify-center rounded-full group-hover:bg-blue-50 group-hover:text-blue-600 border border-slate-100">+</span>
             </button>
-            <div id="content-${q.id}" class="hidden bg-slate-50 border-t border-slate-100 p-5 pl-6 animate-fadeIn">
-                <div class="mb-4">
-                    <span class="flex items-center gap-2 text-xs font-semibold text-green-600 uppercase tracking-wide mb-1">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                        Jawapan Betul
+            <div id="content-${q.id}" class="hidden bg-slate-50 border-t border-slate-100 p-6 pl-8 animate-[fadeIn_0.3s_ease-out]">
+                <div class="mb-5 bg-white p-4 rounded-xl border border-green-100 shadow-sm relative overflow-hidden">
+                    <div class="absolute left-0 top-0 bottom-0 w-1.5 bg-green-400"></div>
+                    <span class="flex items-center gap-2 text-xs font-black text-green-600 uppercase tracking-widest mb-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        Jawapan Tepat
                     </span>
-                    <p class="text-slate-900 font-semibold pl-6 border-l-2 border-green-200">${q.answer}</p>
+                    <p class="text-slate-900 font-bold text-base ml-1">${q.answer}</p>
                 </div>
-                <div>
-                    <span class="flex items-center gap-2 text-xs font-semibold text-blue-600 uppercase tracking-wide mb-1">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                <div class="bg-white p-4 rounded-xl border border-blue-100 shadow-sm relative overflow-hidden">
+                    <div class="absolute left-0 top-0 bottom-0 w-1.5 bg-blue-400"></div>
+                    <span class="flex items-center gap-2 text-xs font-black text-blue-600 uppercase tracking-widest mb-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                         Nota Pakar
                     </span>
-                    <p class="text-slate-600 text-sm mt-1 italic leading-relaxed pl-6 border-l-2 border-blue-200">"${q.note}"</p>
+                    <p class="text-slate-600 text-sm font-medium leading-relaxed italic ml-1">"${q.note}"</p>
                 </div>
             </div>
         `;
@@ -372,7 +449,7 @@ function renderQuestions() {
     });
     
     if (filtered.length === 0) {
-        list.innerHTML = '<div class="text-center py-12 bg-white rounded-xl border border-dashed border-slate-300"><p class="text-slate-400">Tiada soalan ditemui dalam kategori ini.</p></div>';
+        list.innerHTML = '<div class="text-center py-16 bg-white rounded-2xl border border-dashed border-slate-300"><p class="text-slate-400 font-medium">Tiada soalan ditemui dalam kategori ini.</p></div>';
     }
 }
 
@@ -385,12 +462,10 @@ window.toggleAccordion = function(id) {
         content.classList.remove('hidden');
         icon.classList.add('rotate-45');
         icon.innerHTML = '&times;'; 
-        content.classList.add('fade-in');
     } else {
         content.classList.add('hidden');
         icon.classList.remove('rotate-45');
         icon.innerHTML = '+';
-        content.classList.remove('fade-in');
     }
 };
 
@@ -407,7 +482,7 @@ function setupFlashcards() {
 
 function loadCard() {
     if (flashcardIndex >= shuffledFlashcards.length) {
-        document.getElementById('fc-question').textContent = "Sesi Tamat! Tahniah!";
+        document.getElementById('fc-question').textContent = "Sesi Tamat! Tumpuan Hebat!";
         document.getElementById('fc-category').textContent = "SELESAI";
         document.getElementById('fc-controls').classList.add('opacity-0');
         
