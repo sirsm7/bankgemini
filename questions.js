@@ -457,7 +457,7 @@ const rawData = [
 const tasksLevel1 = [
     {
         id: "l1_m1",
-        missionTitle: "Misi 1: Ninja Bilik Darjah",
+        missionTitle: "Misi GCE L1: Ninja Bilik Darjah",
         badgeName: "Classroom Ninja",
         icon: "🏫",
         tasks: [
@@ -474,7 +474,7 @@ const tasksLevel1 = [
     },
     {
         id: "l1_m2",
-        missionTitle: "Misi 2: Arkitek Awan & Dokumen",
+        missionTitle: "Misi GCE L1: Arkitek Awan & Dokumen",
         badgeName: "Cloud Architect",
         icon: "📁",
         tasks: [
@@ -491,7 +491,7 @@ const tasksLevel1 = [
     },
     {
         id: "l1_m3",
-        missionTitle: "Misi 3: Komunikator Sarjana",
+        missionTitle: "Misi GCE L1: Komunikator Sarjana",
         badgeName: "Master Communicator",
         icon: "📧",
         tasks: [
@@ -507,7 +507,7 @@ const tasksLevel1 = [
     },
     {
         id: "l1_m4",
-        missionTitle: "Misi 4: Juara Inklusiviti & Web",
+        missionTitle: "Misi GCE L1: Juara Inklusiviti & Web",
         badgeName: "Inclusion Champion",
         icon: "🌐",
         tasks: [
@@ -526,7 +526,7 @@ const tasksLevel1 = [
 const tasksLevel2 = [
     {
         id: "l2_m1",
-        missionTitle: "Misi 1: Pakar Analisis Data",
+        missionTitle: "Misi GCE L2: Pakar Analisis Data",
         badgeName: "Data Master",
         icon: "📊",
         tasks: [
@@ -541,7 +541,7 @@ const tasksLevel2 = [
     },
     {
         id: "l2_m2",
-        missionTitle: "Misi 2: Strategis Kelas Lanjutan",
+        missionTitle: "Misi GCE L2: Strategis Kelas Lanjutan",
         badgeName: "Advanced Strategist",
         icon: "🎯",
         tasks: [
@@ -555,7 +555,7 @@ const tasksLevel2 = [
     },
     {
         id: "l2_m3",
-        missionTitle: "Misi 3: Pereka Interaktif",
+        missionTitle: "Misi GCE L2: Pereka Interaktif",
         badgeName: "Interactive Designer",
         icon: "🎨",
         tasks: [
@@ -569,7 +569,7 @@ const tasksLevel2 = [
     },
     {
         id: "l2_m4",
-        missionTitle: "Misi 4: Jurutera Automasi",
+        missionTitle: "Misi GCE L2: Jurutera Automasi",
         badgeName: "Automation Engineer",
         icon: "⚙️",
         tasks: [

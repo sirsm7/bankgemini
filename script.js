@@ -1,6 +1,6 @@
 /**
  * GOOGLE ED PREP - LOGIC CONTROLLER (GAMIFIED EDITION)
- * Versi: 5.0 (Isolasi Storan, Sistem Misi & Lencana, Ketahanan Ralat)
+ * Versi: 5.1 (Isolasi Storan, Sistem Misi & Lencana, Ketahanan Ralat Visual)
  * * NOTA: Fail ini bergantung kepada 'questions.js' yang mesti dimuatkan
  * SEBELUM fail ini dalam HTML.
  */
@@ -63,6 +63,9 @@ function init() {
     try {
         if (typeof tasksLevel1 !== 'undefined') {
             initMissions(tasksLevel1, 'l1-missions-grid', 'L1');
+        } else {
+            // Pemanggil fungsi ralat jika array tiada
+            initMissions(null, 'l1-missions-grid', 'L1'); 
         }
     } catch (e) {
         console.error("Ralat memuatkan Misi L1:", e);
@@ -71,6 +74,9 @@ function init() {
     try {
         if (typeof tasksLevel2 !== 'undefined') {
             initMissions(tasksLevel2, 'l2-missions-grid', 'L2');
+        } else {
+             // Pemanggil fungsi ralat jika array tiada
+            initMissions(null, 'l2-missions-grid', 'L2');
         }
     } catch (e) {
         console.error("Ralat memuatkan Misi L2:", e);
@@ -184,7 +190,19 @@ function renderChart() {
 // ==========================================
 function initMissions(missionData, gridContainerId, levelPrefix) {
     const container = document.getElementById(gridContainerId);
-    if (!container || !missionData) return;
+    if (!container) return;
+
+    // SUNTIKAN KESELAMATAN: Mekanisme Fallback UI jika data hilang
+    if (!missionData || missionData.length === 0) {
+        container.innerHTML = `
+            <div class="col-span-full p-8 text-center bg-red-50 rounded-2xl border border-red-200 shadow-sm">
+                <div class="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm text-red-500 text-2xl font-black border border-red-100">!</div>
+                <h3 class="text-red-700 font-bold text-lg">Ralat Sistem: Data Misi Tidak Dijumpai</h3>
+                <p class="text-sm text-red-600/80 mt-2 max-w-md mx-auto">Sistem tidak dapat mengesan fail <code class="bg-red-100 px-1 rounded">questions.js</code>. Sila pastikan fail tersebut dimuatkan dengan betul dalam pautan HTML.</p>
+            </div>
+        `;
+        return;
+    }
 
     container.innerHTML = '';
 
@@ -271,6 +289,9 @@ function updateGamificationState(levelPrefix) {
     let totalLevelTasks = 0;
     let completedLevelTasks = 0;
     let unlockedBadges = [];
+
+    // Jika data tidak wujud, tidak perlu meneruskan pengiraan
+    if (!missionData || missionData.length === 0) return;
 
     missionData.forEach(mission => {
         let missionTotal = mission.tasks.length;
@@ -370,6 +391,7 @@ window.switchView = function(viewName) {
 // 6. BANK SOALAN (STUDY LIST)
 // ==========================================
 function renderCategories() {
+    if (typeof rawData === 'undefined') return;
     const categories = [...new Set(rawData.map(q => q.category))].sort();
     const container = document.getElementById('category-filters');
     if(!container) return;
@@ -407,7 +429,7 @@ window.filterQuestions = function(category, btnElement) {
 
 function renderQuestions() {
     const list = document.getElementById('questions-list');
-    if(!list) return;
+    if(!list || typeof rawData === 'undefined') return;
     
     list.innerHTML = '';
     
@@ -473,6 +495,7 @@ window.toggleAccordion = function(id) {
 // 7. KAD IMBASAN (FLASHCARDS)
 // ==========================================
 function setupFlashcards() {
+    if (typeof rawData === 'undefined') return;
     shuffledFlashcards = [...rawData].sort(() => Math.random() - 0.5);
     flashcardIndex = 0;
     const fcTotal = document.getElementById('fc-total');
