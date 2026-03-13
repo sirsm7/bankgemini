@@ -1,12 +1,10 @@
 /**
- * GEMINI CERTIFICATION FOR EDUCATORS - LOGIC CONTROLLER
- * Versi: 3.0 (Refactored)
- * Tarikh Kemaskini: 2026
+ * GOOGLE ED PREP - LOGIC CONTROLLER
+ * Versi: 4.0 (Integrasi GCE L1 & L2)
  * * NOTA: Fail ini bergantung kepada 'questions.js' yang mesti dimuatkan
  * SEBELUM fail ini dalam HTML.
  */
 
-// Pastikan rawData wujud
 if (typeof rawData === 'undefined') {
     console.error("RALAT KRITIKAL: 'questions.js' tidak dimuatkan! Sila semak fail HTML anda.");
 }
@@ -20,36 +18,37 @@ let flashcardRevealed = false;
 
 // --- INIT & NAVIGATION ---
 function init() {
-    updateDashboardStats(); // PANGGILAN FUNGSI DINAMIK
+    updateDashboardStats();
     renderChart();
     renderCategories();
     renderQuestions();
+    
+    // Inisialisasi Modul Senarai Semak GCE L1 & L2
+    if (typeof tasksLevel1 !== 'undefined') {
+        renderTasks(tasksLevel1, 'l1-tasks-container', 'L1', 'l1-progress-text', 'l1-progress-bar');
+    }
+    if (typeof tasksLevel2 !== 'undefined') {
+        renderTasks(tasksLevel2, 'l2-tasks-container', 'L2', 'l2-progress-text', 'l2-progress-bar');
+    }
 }
 
-// --- FUNGSI BARU: KIRA STATISTIK AUTOMATIK ---
 function updateDashboardStats() {
-    // 1. Kemaskini Jumlah Soalan (Dashboard & Intro)
     const totalQ = rawData.length;
     
-    // Update kad statistik
     const statTotalQ = document.getElementById('stat-total-q');
     if(statTotalQ) {
         statTotalQ.textContent = totalQ;
         statTotalQ.classList.remove('animate-pulse');
     }
 
-    // Update teks intro
     const statIntro = document.getElementById('stat-intro-count');
     if(statIntro) {
         statIntro.textContent = totalQ;
     }
 
-    // Update teks di tab Bank Soalan
     const statTotalQ2 = document.getElementById('stat-total-q-2');
     if(statTotalQ2) statTotalQ2.textContent = totalQ;
 
-    // 2. Kemaskini Jumlah Kategori
-    // Bersihkan nama kategori daripada (extra text) jika ada
     const uniqueCategories = new Set(rawData.map(q => q.category.replace(/\(.*\)/, '').trim()));
     const statTotalCat = document.getElementById('stat-total-cat');
     if(statTotalCat) {
@@ -57,7 +56,6 @@ function updateDashboardStats() {
         statTotalCat.classList.remove('animate-pulse');
     }
 
-    // 3. Cari Fokus Terbesar (Top Topic)
     const categoryCounts = {};
     rawData.forEach(q => {
         const cleanCat = q.category.replace(/\(.*\)/, '').trim();
@@ -74,8 +72,7 @@ function updateDashboardStats() {
         }
     }
 
-    // Kira peratusan
-    const percentage = Math.round((maxCount / totalQ) * 100);
+    const percentage = totalQ > 0 ? Math.round((maxCount / totalQ) * 100) : 0;
 
     const statTopCat = document.getElementById('stat-top-cat');
     const statTopDesc = document.getElementById('stat-top-cat-desc');
@@ -90,17 +87,24 @@ function updateDashboardStats() {
 }
 
 function switchView(viewName) {
-    // Hide all
     ['dashboard', 'study', 'flashcards'].forEach(v => {
-        document.getElementById(`view-${v}`).classList.add('hidden');
-        document.getElementById(`nav-${v}`).classList.remove('bg-blue-50', 'text-blue-600');
-        document.getElementById(`nav-${v}`).classList.add('text-slate-600');
+        const viewEl = document.getElementById(`view-${v}`);
+        const navEl = document.getElementById(`nav-${v}`);
+        if(viewEl) viewEl.classList.add('hidden');
+        if(navEl) {
+            navEl.classList.remove('bg-blue-50', 'text-blue-600');
+            navEl.classList.add('text-slate-600');
+        }
     });
 
-    // Show selected
-    document.getElementById(`view-${viewName}`).classList.remove('hidden');
-    document.getElementById(`nav-${viewName}`).classList.add('bg-blue-50', 'text-blue-600');
-    document.getElementById(`nav-${viewName}`).classList.remove('text-slate-600');
+    const activeViewEl = document.getElementById(`view-${viewName}`);
+    const activeNavEl = document.getElementById(`nav-${viewName}`);
+    
+    if(activeViewEl) activeViewEl.classList.remove('hidden');
+    if(activeNavEl) {
+        activeNavEl.classList.add('bg-blue-50', 'text-blue-600');
+        activeNavEl.classList.remove('text-slate-600');
+    }
     
     currentView = viewName;
     
@@ -109,11 +113,94 @@ function switchView(viewName) {
     }
 }
 
+// --- TASK TRACKER LOGIC (L1 & L2) ---
+function renderTasks(taskData, containerId, storagePrefix, progressTextId, progressBarId) {
+    const container = document.getElementById(containerId);
+    if (!container || !taskData) return;
+
+    container.innerHTML = '';
+    let totalTasks = 0;
+    let completedTasks = 0;
+
+    taskData.forEach((section, sectionIndex) => {
+        const sectionDiv = document.createElement('div');
+        sectionDiv.className = 'mb-6';
+        
+        const sectionTitle = document.createElement('h4');
+        sectionTitle.className = 'font-bold text-slate-800 mb-3 border-b border-slate-200 pb-2 text-base';
+        sectionTitle.textContent = section.category;
+        sectionDiv.appendChild(sectionTitle);
+
+        const taskList = document.createElement('div');
+        taskList.className = 'space-y-3 pl-1';
+
+        section.tasks.forEach((task, taskIndex) => {
+            totalTasks++;
+            const taskId = `${storagePrefix}_${sectionIndex}_${taskIndex}`;
+            const isChecked = localStorage.getItem(taskId) === 'true';
+            if (isChecked) completedTasks++;
+
+            // Menyesuaikan warna interaktif berdasarkan tahap pensijilan
+            const colorClasses = storagePrefix === 'L2' 
+                ? 'peer-checked:bg-indigo-600 peer-checked:border-indigo-600' 
+                : 'peer-checked:bg-blue-600 peer-checked:border-blue-600';
+
+            const taskItem = document.createElement('label');
+            taskItem.className = 'flex items-start gap-3 cursor-pointer group';
+            
+            taskItem.innerHTML = `
+                <div class="relative flex items-center justify-center mt-0.5 shrink-0">
+                    <input type="checkbox" id="${taskId}" class="peer sr-only" ${isChecked ? 'checked' : ''} onchange="handleTaskToggle(this, '${containerId}', '${progressTextId}', '${progressBarId}', ${getTotalTasksCount(taskData)})">
+                    <div class="w-5 h-5 border-2 border-slate-300 rounded bg-white ${colorClasses} transition-all flex items-center justify-center shadow-sm">
+                        <svg class="w-3 h-3 text-white opacity-0 peer-checked:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+                    </div>
+                </div>
+                <span class="text-sm font-medium text-slate-700 group-hover:text-slate-900 peer-checked:text-slate-400 peer-checked:line-through transition-all select-none leading-relaxed">${task}</span>
+            `;
+            taskList.appendChild(taskItem);
+        });
+
+        sectionDiv.appendChild(taskList);
+        container.appendChild(sectionDiv);
+    });
+
+    // Menjana UI kemajuan awal sewaktu bebanan laman
+    updateProgressUI(completedTasks, totalTasks, progressTextId, progressBarId);
+}
+
+function getTotalTasksCount(taskData) {
+    return taskData.reduce((total, section) => total + section.tasks.length, 0);
+}
+
+// Fungsi global untuk dicetuskan oleh input checkbox dalam HTML janaan dinamik
+window.handleTaskToggle = function(checkbox, containerId, progressTextId, progressBarId, totalTasks) {
+    localStorage.setItem(checkbox.id, checkbox.checked);
+    
+    const container = document.getElementById(containerId);
+    if(!container) return;
+    
+    // Kira semula terus dari elemen DOM yang terkini
+    const checkedBoxes = container.querySelectorAll('input[type="checkbox"]:checked').length;
+    
+    updateProgressUI(checkedBoxes, totalTasks, progressTextId, progressBarId);
+};
+
+function updateProgressUI(completed, total, textId, barId) {
+    const percentage = total === 0 ? 0 : Math.round((completed / total) * 100);
+    const textEl = document.getElementById(textId);
+    const barEl = document.getElementById(barId);
+    
+    if (textEl) textEl.textContent = `${percentage}%`;
+    if (barEl) barEl.style.width = `${percentage}%`;
+}
+
 // --- DASHBOARD CHARTS ---
 function renderChart() {
-    const ctx = document.getElementById('topicChart').getContext('2d');
+    const canvasEl = document.getElementById('topicChart');
+    if(!canvasEl) return;
     
-    // Aggregation
+    const ctx = canvasEl.getContext('2d');
+    
     const categoryCounts = {};
     rawData.forEach(q => {
         const cleanCat = q.category.replace(/\(.*\)/, '').trim(); 
@@ -123,7 +210,6 @@ function renderChart() {
     const labels = Object.keys(categoryCounts);
     const data = Object.values(categoryCounts);
     
-    // Soft Google Colors
     const colors = [
         '#4285F4', '#34A853', '#FBBC05', '#EA4335', 
         '#8AB4F8', '#81C995', '#FDE293', '#F28B82',
@@ -167,6 +253,7 @@ function renderChart() {
 function renderCategories() {
     const categories = [...new Set(rawData.map(q => q.category))].sort();
     const container = document.getElementById('category-filters');
+    if(!container) return;
     
     categories.forEach(cat => {
         const btn = document.createElement('button');
@@ -177,28 +264,32 @@ function renderCategories() {
     });
 }
 
-function filterQuestions(category, btnElement) {
+window.filterQuestions = function(category, btnElement) {
     currentCategoryFilter = category;
     
-    // Update UI buttons
     document.querySelectorAll('.filter-btn').forEach(b => {
         b.classList.remove('bg-slate-800', 'text-white', 'border-transparent');
         b.classList.add('bg-white', 'text-slate-600', 'border-slate-200');
     });
     
     if (category === 'all') {
-        document.querySelector('button[onclick="filterQuestions(\'all\')"]').classList.add('bg-slate-800', 'text-white', 'border-transparent');
-        document.querySelector('button[onclick="filterQuestions(\'all\')"]').classList.remove('bg-white', 'text-slate-600');
+        const allBtn = document.querySelector('button[onclick="filterQuestions(\'all\')"]');
+        if(allBtn) {
+            allBtn.classList.add('bg-slate-800', 'text-white', 'border-transparent');
+            allBtn.classList.remove('bg-white', 'text-slate-600');
+        }
     } else if (btnElement) {
         btnElement.classList.add('bg-slate-800', 'text-white', 'border-transparent');
         btnElement.classList.remove('bg-white', 'text-slate-600');
     }
 
     renderQuestions();
-}
+};
 
 function renderQuestions() {
     const list = document.getElementById('questions-list');
+    if(!list) return;
+    
     list.innerHTML = '';
     
     const filtered = currentCategoryFilter === 'all' 
@@ -241,9 +332,10 @@ function renderQuestions() {
     }
 }
 
-function toggleAccordion(id) {
+window.toggleAccordion = function(id) {
     const content = document.getElementById(`content-${id}`);
     const icon = document.getElementById(`icon-${id}`);
+    if(!content || !icon) return;
     
     if (content.classList.contains('hidden')) {
         content.classList.remove('hidden');
@@ -256,13 +348,14 @@ function toggleAccordion(id) {
         icon.innerHTML = '+';
         content.classList.remove('fade-in');
     }
-}
+};
 
 // --- FLASHCARD LOGIC ---
 function setupFlashcards() {
     shuffledFlashcards = [...rawData].sort(() => Math.random() - 0.5);
     flashcardIndex = 0;
-    document.getElementById('fc-total').textContent = shuffledFlashcards.length;
+    const fcTotal = document.getElementById('fc-total');
+    if(fcTotal) fcTotal.textContent = shuffledFlashcards.length;
     loadCard();
 }
 
@@ -285,8 +378,12 @@ function loadCard() {
         flashcardEl.classList.remove('flipped');
     }
     flashcardRevealed = false;
-    document.getElementById('fc-controls').classList.remove('opacity-100');
-    document.getElementById('fc-controls').classList.add('opacity-0');
+    
+    const fcControls = document.getElementById('fc-controls');
+    if(fcControls) {
+        fcControls.classList.remove('opacity-100');
+        fcControls.classList.add('opacity-0');
+    }
 
     setTimeout(() => { 
         document.getElementById('fc-category').textContent = card.category;
@@ -297,7 +394,7 @@ function loadCard() {
     }, 300);
 }
 
-function flipCard() {
+window.flipCard = function() {
     if (flashcardRevealed) return; 
     
     const flashcardEl = document.querySelector('.flashcard');
@@ -306,17 +403,22 @@ function flipCard() {
         flashcardRevealed = true;
         
         setTimeout(() => {
-            document.getElementById('fc-controls').classList.remove('opacity-0');
-            document.getElementById('fc-controls').classList.add('opacity-100');
+            const fcControls = document.getElementById('fc-controls');
+            if(fcControls) {
+                fcControls.classList.remove('opacity-0');
+                fcControls.classList.add('opacity-100');
+            }
         }, 600);
     }
-}
+};
 
-function nextCard(known, event) {
-    event.stopPropagation(); 
+window.nextCard = function(known, event) {
+    if(event) event.stopPropagation(); 
     flashcardIndex++;
     loadCard();
-}
+};
 
-// Run Init
+window.switchView = switchView;
+
+// Memicu inisialisasi pada proses DOMContentLoaded
 window.addEventListener('DOMContentLoaded', init);

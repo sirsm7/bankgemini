@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gemini for Education: Hab Persediaan Interaktif</title>
+    <title>Google Ed Prep: Hab Bengkel Interaktif</title>
     
     <!-- PWA CONFIGURATION -->
     <link rel="manifest" href="manifest.json">
@@ -29,8 +29,8 @@
                 <div class="flex items-center gap-3">
                     <img src="https://upload.wikimedia.org/wikipedia/commons/8/8a/Google_Gemini_logo.svg" alt="Google Gemini Logo" class="h-8 w-auto">
                     
-                    <span class="font-semibold text-slate-800 text-lg tracking-tight hidden md:block">Nota Persediaan Gemini for Education</span>
-                    <span class="font-semibold text-slate-800 text-lg tracking-tight md:hidden">Gemini Ed. Prep</span>
+                    <span class="font-semibold text-slate-800 text-lg tracking-tight hidden md:block">Google Ed Prep: Hab Bengkel</span>
+                    <span class="font-semibold text-slate-800 text-lg tracking-tight md:hidden">Ed Prep Hub</span>
                 </div>
                 <div class="flex items-center space-x-2 md:space-x-4">
                     <button onclick="switchView('dashboard')" id="nav-dashboard" class="px-3 py-2 rounded-md text-sm font-medium text-blue-600 bg-blue-50 transition-colors">Utama</button>
@@ -46,117 +46,213 @@
         
         <!-- DASHBOARD VIEW -->
         <div id="view-dashboard" class="fade-in space-y-8">
+            
             <!-- Intro Section -->
-            <div class="text-center max-w-3xl mx-auto mb-10">
-                <h1 class="text-3xl font-bold text-slate-900 mb-4">Pusat Kawalan Pembelajaran</h1>
+            <div class="text-center max-w-3xl mx-auto mb-8">
+                <h1 class="text-3xl md:text-4xl font-bold text-slate-900 mb-4">Pusat Kawalan Bengkel Pensijilan</h1>
                 <p class="text-slate-600 leading-relaxed">
-                    Selamat datang ke hab interaktif untuk pensijilan <strong>Google Gemini for Education</strong>. 
-                    Aplikasi ini menganalisis <strong id="stat-intro-count" class="text-blue-600">...</strong> soalan utama daripada bank soalan terkini untuk membantu anda memahami 
-                    struktur peperiksaan, menguasai topik kritikal, serta menguji kefahaman anda.
+                    Selamat datang ke hab interaktif persediaan <strong>Google Certified Educator & Gemini</strong>. 
+                    Pilih laluan modul anda di bawah untuk mula menjejaki kemajuan tugasan praktikal atau mengulangkaji <strong id="stat-intro-count" class="text-blue-600">...</strong> soalan teori.
                 </p>
-                <!-- Install PWA Button (Hidden by default, shown via JS if installable) -->
-                <button id="install-btn" class="hidden mt-4 bg-slate-900 text-white px-5 py-2 rounded-full text-sm font-medium hover:bg-slate-800 transition shadow-lg">
+                <!-- Install PWA Button -->
+                <button id="install-btn" class="hidden mt-4 bg-slate-900 text-white px-5 py-2 rounded-full text-sm font-medium hover:bg-slate-800 transition shadow-lg mx-auto">
                     📲 Pasang Aplikasi (Install App)
                 </button>
             </div>
 
-            <!-- Stats Grid (DINAMIK - Data dikira oleh script.js) -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                <!-- Stat 1: Jumlah Soalan -->
-                <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm card-hover">
-                    <div class="text-sm font-medium text-slate-500 mb-1">Jumlah Soalan</div>
-                    <div id="stat-total-q" class="text-4xl font-bold text-blue-600 animate-pulse">...</div>
-                    <div class="text-xs text-green-600 mt-2 font-medium bg-green-50 inline-block px-2 py-1 rounded">100% Data Disahkan</div>
-                </div>
-
-                <!-- Stat 2: Jumlah Kategori -->
-                <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm card-hover">
-                    <div class="text-sm font-medium text-slate-500 mb-1">Kategori Utama</div>
-                    <div id="stat-total-cat" class="text-4xl font-bold text-indigo-600 animate-pulse">...</div>
-                    <div class="text-xs text-slate-400 mt-2">Topik Diversifikasi</div>
-                </div>
-
-                <!-- Stat 3: Fokus Terbesar (Auto-Calculate) -->
-                <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm card-hover">
-                    <div class="text-sm font-medium text-slate-500 mb-1">Fokus Terbesar</div>
-                    <div id="stat-top-cat" class="text-3xl font-bold text-teal-600 animate-pulse">...</div>
-                    <div id="stat-top-cat-desc" class="text-xs text-slate-400 mt-2">Sedang mengira data...</div>
-                </div>
+            <!-- Tracks Navigation (Laluan Modul) -->
+            <div class="flex flex-wrap justify-center gap-3 mb-8 border-b border-slate-200 pb-6">
+                <button id="tab-gemini" onclick="switchTrack('gemini')" class="px-6 py-2.5 rounded-full text-sm font-semibold bg-blue-600 text-white shadow-md transition-all border border-transparent">Modul Gemini</button>
+                <button id="tab-level1" onclick="switchTrack('level1')" class="px-6 py-2.5 rounded-full text-sm font-medium bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 hover:text-blue-600 transition-all shadow-sm">GCE Level 1</button>
+                <button id="tab-level2" onclick="switchTrack('level2')" class="px-6 py-2.5 rounded-full text-sm font-medium bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 hover:text-blue-600 transition-all shadow-sm">GCE Level 2</button>
             </div>
 
-            <!-- Chart Section -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-                <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-                    <h3 class="text-lg font-semibold text-slate-800 mb-2">Taburan Topik Peperiksaan</h3>
-                    <p class="text-sm text-slate-500 mb-6">Analisis pecahan soalan mengikut kategori untuk merancang strategi ulang kaji anda.</p>
-                    
-                    <!-- Chart Container -->
-                    <div class="chart-container">
-                        <canvas id="topicChart"></canvas>
+            <!-- ========================================== -->
+            <!-- TRACK: GEMINI FOR EDUCATION (Sedia Ada)    -->
+            <!-- ========================================== -->
+            <div id="track-gemini" class="fade-in block">
+                <!-- Stats Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <!-- Stat 1 -->
+                    <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm card-hover">
+                        <div class="text-sm font-medium text-slate-500 mb-1">Jumlah Soalan</div>
+                        <div id="stat-total-q" class="text-4xl font-bold text-blue-600 animate-pulse">...</div>
+                        <div class="text-xs text-green-600 mt-2 font-medium bg-green-50 inline-block px-2 py-1 rounded">100% Data Disahkan</div>
+                    </div>
+                    <!-- Stat 2 -->
+                    <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm card-hover">
+                        <div class="text-sm font-medium text-slate-500 mb-1">Kategori Utama</div>
+                        <div id="stat-total-cat" class="text-4xl font-bold text-indigo-600 animate-pulse">...</div>
+                        <div class="text-xs text-slate-400 mt-2">Topik Diversifikasi</div>
+                    </div>
+                    <!-- Stat 3 -->
+                    <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm card-hover">
+                        <div class="text-sm font-medium text-slate-500 mb-1">Fokus Terbesar</div>
+                        <div id="stat-top-cat" class="text-3xl font-bold text-teal-600 animate-pulse">...</div>
+                        <div id="stat-top-cat-desc" class="text-xs text-slate-400 mt-2">Sedang mengira data...</div>
                     </div>
                 </div>
 
-                <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col h-full">
-                    <h3 class="text-lg font-semibold text-slate-800 mb-4">Laluan Pantas</h3>
-                    <div class="space-y-4 flex-grow">
-                        <!-- Butang 1: Bank Soalan -->
-                        <button onclick="switchView('study')" class="w-full group p-4 border border-slate-200 rounded-lg hover:border-blue-400 hover:bg-blue-50 transition-all text-left flex items-center justify-between">
-                            <div>
-                                <div class="font-medium text-slate-900 group-hover:text-blue-700">Semak Bank Soalan</div>
-                                <div class="text-sm text-slate-500">Lihat senarai lengkap dengan jawapan dan nota pakar.</div>
-                            </div>
-                            <span class="text-2xl text-slate-300 group-hover:text-blue-500">&rarr;</span>
-                        </button>
-
-                        <!-- Butang 2: Kad Imbasan -->
-                        <button onclick="switchView('flashcards')" class="w-full group p-4 border border-slate-200 rounded-lg hover:border-indigo-400 hover:bg-indigo-50 transition-all text-left flex items-center justify-between">
-                            <div>
-                                <div class="font-medium text-slate-900 group-hover:text-indigo-700">Mula Latihan Kad Imbasan</div>
-                                <div class="text-sm text-slate-500">Uji ingatan aktif anda dengan mod interaktif rawak.</div>
-                            </div>
-                            <span class="text-2xl text-slate-300 group-hover:text-indigo-500">&rarr;</span>
-                        </button>
-
-                        <!-- Butang 3: Daftar Peperiksaan -->
-                        <a href="https://educertifications.google/registration/4" target="_blank" class="w-full group p-4 border border-slate-200 rounded-lg hover:border-emerald-400 hover:bg-emerald-50 transition-all text-left flex items-center justify-between">
-                            <div>
-                                <div class="font-medium text-slate-900 group-hover:text-emerald-700">Daftar Gemini Educator</div>
-                                <div class="text-sm text-slate-500">Pautan rasmi ke portal peperiksaan Google.</div>
-                            </div>
-                            <span class="text-2xl text-slate-300 group-hover:text-emerald-500">&nearr;</span>
-                        </a>
-
-                        <!-- Butang 4: AI Exam Helper -->
-                        <a href="ai-helper.html" class="w-full group p-4 border border-slate-200 rounded-lg hover:border-purple-400 hover:bg-purple-50 transition-all text-left flex items-center justify-between">
-                            <div>
-                                <div class="font-medium text-slate-900 group-hover:text-purple-700 flex items-center gap-2">
-                                    <span>Pembantu AI Peperiksaan</span>
-                                    <span class="bg-purple-100 text-purple-700 text-[10px] px-2 py-0.5 rounded-full border border-purple-200 uppercase tracking-wide font-bold">Rahsia</span>
-                                </div>
-                                <div class="text-sm text-slate-500">Dapatkan 'Master Prompt' untuk menjawab soalan dengan tepat.</div>
-                            </div>
-                            <span class="text-2xl text-slate-300 group-hover:text-purple-500">✨</span>
-                        </a>
+                <!-- Chart & Quick Links -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+                    <!-- Chart Section -->
+                    <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                        <h3 class="text-lg font-semibold text-slate-800 mb-2">Taburan Topik Peperiksaan</h3>
+                        <p class="text-sm text-slate-500 mb-6">Analisis pecahan soalan mengikut kategori untuk merancang strategi ulang kaji anda.</p>
+                        <div class="chart-container">
+                            <canvas id="topicChart"></canvas>
+                        </div>
                     </div>
-                    
-                    <div class="mt-6 pt-6 border-t border-slate-100">
-                        <h4 class="text-sm font-semibold text-slate-700 mb-3">Topik Hangat (Hot Topics):</h4>
-                        <div class="flex flex-wrap gap-2">
-                            <span class="px-2 py-1 bg-amber-100 text-amber-700 text-xs rounded-full border border-amber-200 font-medium">NotebookLM</span>
-                            <span class="px-2 py-1 bg-red-100 text-red-700 text-xs rounded-full border border-red-200 font-medium">Hallucinations</span>
-                            <span class="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full border border-blue-200 font-medium">Persona & Prompting</span>
-                            <span class="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full border border-green-200 font-medium">Gemini for Workspace</span>
+
+                    <!-- Quick Links Section -->
+                    <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col h-full">
+                        <h3 class="text-lg font-semibold text-slate-800 mb-4">Laluan Pantas</h3>
+                        <div class="space-y-4 flex-grow">
+                            <!-- Butang 1 -->
+                            <button onclick="switchView('study')" class="w-full group p-4 border border-slate-200 rounded-lg hover:border-blue-400 hover:bg-blue-50 transition-all text-left flex items-center justify-between">
+                                <div>
+                                    <div class="font-medium text-slate-900 group-hover:text-blue-700">Semak Bank Soalan</div>
+                                    <div class="text-sm text-slate-500">Lihat senarai lengkap dengan jawapan dan nota pakar.</div>
+                                </div>
+                                <span class="text-2xl text-slate-300 group-hover:text-blue-500">&rarr;</span>
+                            </button>
+                            <!-- Butang 2 -->
+                            <button onclick="switchView('flashcards')" class="w-full group p-4 border border-slate-200 rounded-lg hover:border-indigo-400 hover:bg-indigo-50 transition-all text-left flex items-center justify-between">
+                                <div>
+                                    <div class="font-medium text-slate-900 group-hover:text-indigo-700">Mula Latihan Kad Imbasan</div>
+                                    <div class="text-sm text-slate-500">Uji ingatan aktif anda dengan mod interaktif rawak.</div>
+                                </div>
+                                <span class="text-2xl text-slate-300 group-hover:text-indigo-500">&rarr;</span>
+                            </button>
+                            <!-- Butang 3 -->
+                            <a href="https://educertifications.google/registration/4" target="_blank" class="w-full group p-4 border border-slate-200 rounded-lg hover:border-emerald-400 hover:bg-emerald-50 transition-all text-left flex items-center justify-between">
+                                <div>
+                                    <div class="font-medium text-slate-900 group-hover:text-emerald-700">Daftar Peperiksaan Gemini</div>
+                                    <div class="text-sm text-slate-500">Pautan rasmi ke portal peperiksaan Google.</div>
+                                </div>
+                                <span class="text-2xl text-slate-300 group-hover:text-emerald-500">&nearr;</span>
+                            </a>
+                            <!-- Butang 4 -->
+                            <a href="ai-helper.html" class="w-full group p-4 border border-slate-200 rounded-lg hover:border-purple-400 hover:bg-purple-50 transition-all text-left flex items-center justify-between">
+                                <div>
+                                    <div class="font-medium text-slate-900 group-hover:text-purple-700 flex items-center gap-2">
+                                        <span>Pembantu AI Peperiksaan</span>
+                                        <span class="bg-purple-100 text-purple-700 text-[10px] px-2 py-0.5 rounded-full border border-purple-200 uppercase tracking-wide font-bold">Rahsia</span>
+                                    </div>
+                                    <div class="text-sm text-slate-500">Dapatkan 'Master Prompt' untuk menjawab soalan dengan tepat.</div>
+                                </div>
+                                <span class="text-2xl text-slate-300 group-hover:text-purple-500">✨</span>
+                            </a>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
+
+            <!-- ========================================== -->
+            <!-- TRACK: GCE LEVEL 1                         -->
+            <!-- ========================================== -->
+            <div id="track-level1" class="fade-in hidden max-w-5xl mx-auto">
+                <div class="bg-white p-6 md:p-8 rounded-2xl border border-slate-200 shadow-sm">
+                    <div class="flex items-center gap-4 mb-4">
+                        <div class="w-12 h-12 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                        </div>
+                        <div>
+                            <h2 class="text-2xl font-bold text-slate-900">Google Certified Educator: Level 1</h2>
+                            <p class="text-slate-500 text-sm mt-1">Asas Pengintegrasian Digital dalam Bilik Darjah</p>
+                        </div>
+                    </div>
+
+                    <!-- Objektif (BM) -->
+                    <div class="bg-slate-50 border border-slate-100 rounded-xl p-5 mb-8">
+                        <h3 class="font-semibold text-slate-800 mb-3">🎯 Objektif Modul:</h3>
+                        <p class="text-sm text-slate-600 leading-relaxed mb-3">Di akhir modul ini, peserta bengkel akan dapat:</p>
+                        <ul class="list-disc pl-5 text-sm text-slate-600 space-y-1.5">
+                            <li>Mengenal pasti alatan Google yang sesuai untuk penyelesaian tugas tertentu (Create).</li>
+                            <li>Membina, berkongsi, dan menilai bahan PDP menggunakan Google Drive, Docs, Slides, dan Classroom (Share & Collaborate).</li>
+                            <li>Menguruskan komunikasi berkesan bersama pelajar dan komuniti menggunakan Gmail, Meet, dan Calendar (Communicate & Organize).</li>
+                        </ul>
+                    </div>
+
+                    <!-- Progress Bar -->
+                    <div class="mb-6">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-sm font-semibold text-slate-700">Kemajuan Tugasan Praktikal</span>
+                            <span id="l1-progress-text" class="text-sm font-bold text-blue-600">0%</span>
+                        </div>
+                        <div class="w-full bg-slate-100 rounded-full h-3">
+                            <div id="l1-progress-bar" class="bg-blue-600 h-3 rounded-full transition-all duration-500" style="width: 0%"></div>
+                        </div>
+                    </div>
+
+                    <div class="bg-blue-50/50 border border-blue-100 rounded-xl p-5 mb-6">
+                        <h3 class="text-sm font-bold text-blue-800 mb-2">Senarai Semak Interaktif:</h3>
+                        <p class="text-sm text-blue-700 mb-4">Tandakan pada kotak (checkbox) bagi setiap tugasan yang berjaya dilengkapkan. Tugasan dipaparkan dalam bahasa Inggeris sebagai persediaan visual format peperiksaan sebenar.</p>
+                        
+                        <!-- L1 Task List Container -->
+                        <div id="l1-tasks-container" class="space-y-6">
+                            <!-- Dijana oleh script.js -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ========================================== -->
+            <!-- TRACK: GCE LEVEL 2                         -->
+            <!-- ========================================== -->
+            <div id="track-level2" class="fade-in hidden max-w-5xl mx-auto">
+                <div class="bg-white p-6 md:p-8 rounded-2xl border border-slate-200 shadow-sm">
+                    <div class="flex items-center gap-4 mb-4">
+                        <div class="w-12 h-12 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg>
+                        </div>
+                        <div>
+                            <h2 class="text-2xl font-bold text-slate-900">Google Certified Educator: Level 2</h2>
+                            <p class="text-slate-500 text-sm mt-1">Pengintegrasian Lanjutan & Reka Bentuk Inovatif</p>
+                        </div>
+                    </div>
+
+                    <!-- Objektif (BM) -->
+                    <div class="bg-slate-50 border border-slate-100 rounded-xl p-5 mb-8">
+                        <h3 class="font-semibold text-slate-800 mb-3">🎯 Objektif Modul:</h3>
+                        <p class="text-sm text-slate-600 leading-relaxed mb-3">Di akhir modul ini, peserta bengkel akan dapat:</p>
+                        <ul class="list-disc pl-5 text-sm text-slate-600 space-y-1.5">
+                            <li>Menganalisis, menapis, dan menyusun data pencapaian pelajar menggunakan fungsi lanjutan Google Sheets.</li>
+                            <li>Membina ruang perkongsian maklumat digital dan portfolio interaktif menggunakan Google Sites.</li>
+                            <li>Merekabentuk pengalaman pembelajaran yang dipersonalisasi (differentiated learning) menerusi automasi dan alatan gabungan.</li>
+                        </ul>
+                    </div>
+
+                    <!-- Progress Bar -->
+                    <div class="mb-6">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-sm font-semibold text-slate-700">Kemajuan Tugasan Praktikal</span>
+                            <span id="l2-progress-text" class="text-sm font-bold text-indigo-600">0%</span>
+                        </div>
+                        <div class="w-full bg-slate-100 rounded-full h-3">
+                            <div id="l2-progress-bar" class="bg-indigo-600 h-3 rounded-full transition-all duration-500" style="width: 0%"></div>
+                        </div>
+                    </div>
+
+                    <div class="bg-indigo-50/50 border border-indigo-100 rounded-xl p-5 mb-6">
+                        <h3 class="text-sm font-bold text-indigo-800 mb-2">Senarai Semak Interaktif:</h3>
+                        <p class="text-sm text-indigo-700 mb-4">Lengkapkan setiap simulasi kemahiran berpandukan garis panduan L2 (dalam bahasa Inggeris). Data akan dikekalkan pada pelayar anda.</p>
+                        
+                        <!-- L2 Task List Container -->
+                        <div id="l2-tasks-container" class="space-y-6">
+                            <!-- Dijana oleh script.js -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div> <!-- END DASHBOARD VIEW -->
 
         <!-- STUDY LIST VIEW -->
         <div id="view-study" class="hidden fade-in">
             <div class="mb-8">
                 <h2 class="text-2xl font-bold text-slate-900">Bank Soalan Lengkap</h2>
-                <p class="text-slate-600 mt-2">Teroka kesemua <span id="stat-total-q-2" class="font-bold text-blue-600">...</span> soalan. Gunakan penapis di bawah untuk fokus kepada topik tertentu.</p>
+                <p class="text-slate-600 mt-2">Teroka kesemua <span id="stat-total-q-2" class="font-bold text-blue-600">...</span> soalan teori Gemini. Gunakan penapis di bawah untuk fokus kepada topik tertentu.</p>
             </div>
 
             <!-- Filters -->
@@ -180,9 +276,7 @@
 
             <!-- Flashcard Container -->
             <div class="flashcard w-full max-w-2xl h-96 cursor-pointer group select-none" onclick="flipCard()">
-                <!-- Flashcard Inner -->
                 <div id="flashcard-inner" class="flashcard-inner shadow-xl rounded-2xl bg-white border border-slate-200">
-                    
                     <!-- FRONT -->
                     <div class="flashcard-front flex flex-col items-center justify-center p-8 bg-white rounded-2xl">
                         <span id="fc-category" class="absolute top-6 left-6 text-[10px] font-bold tracking-wider text-blue-600 uppercase bg-blue-50 px-2 py-1 rounded border border-blue-100">Kategori</span>
@@ -233,21 +327,46 @@
     <footer class="bg-white border-t border-slate-200 mt-12 py-8">
         <div class="container mx-auto px-4 text-center">
             <p class="text-slate-500 text-sm">Dijana daripada Laporan Sumber Gemini for Education Certification.</p>
-            <p class="text-slate-400 text-xs mt-2">Bukan bahan rasmi Google. Untuk tujuan pembelajaran sahaja.</p>
+            <p class="text-slate-400 text-xs mt-2">Bukan bahan rasmi Google. Untuk tujuan pembelajaran bengkel sahaja.</p>
         </div>
     </footer>
+
+    <!-- Skrip Ringkas untuk Penukaran Track UI secara Manual -->
+    <script>
+        function switchTrack(track) {
+            // Hide all tracks
+            ['gemini', 'level1', 'level2'].forEach(t => {
+                document.getElementById('track-' + t).classList.add('hidden');
+                document.getElementById('track-' + t).classList.remove('block');
+                
+                // Reset Button styling
+                const btn = document.getElementById('tab-' + t);
+                btn.classList.remove('bg-blue-600', 'text-white', 'shadow-md', 'border-transparent', 'bg-indigo-600');
+                btn.classList.add('bg-white', 'text-slate-600', 'border-slate-200');
+            });
+            
+            // Show selected track
+            document.getElementById('track-' + track).classList.remove('hidden');
+            document.getElementById('track-' + track).classList.add('block');
+            
+            // Style active button
+            const activeBtn = document.getElementById('tab-' + track);
+            activeBtn.classList.remove('bg-white', 'text-slate-600', 'border-slate-200');
+            
+            if(track === 'level2') {
+                 activeBtn.classList.add('bg-indigo-600', 'text-white', 'shadow-md', 'border-transparent');
+            } else {
+                 activeBtn.classList.add('bg-blue-600', 'text-white', 'shadow-md', 'border-transparent');
+            }
+        }
+    </script>
 
     <!-- SERVICE WORKER REGISTRATION SCRIPT -->
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('./sw.js')
-                    .then(registration => {
-                        console.log('Service Worker didaftarkan dengan skop:', registration.scope);
-                    })
-                    .catch(err => {
-                        console.error('Pendaftaran Service Worker gagal:', err);
-                    });
+                    .catch(err => console.error('Pendaftaran Service Worker gagal:', err));
             });
         }
 
@@ -258,22 +377,19 @@
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             deferredPrompt = e;
-            installBtn.classList.remove('hidden'); // Tunjuk butang jika boleh install
+            installBtn.classList.remove('hidden');
         });
 
         installBtn.addEventListener('click', (e) => {
             installBtn.classList.add('hidden');
             deferredPrompt.prompt();
             deferredPrompt.userChoice.then((choiceResult) => {
-                if (choiceResult.outcome === 'accepted') {
-                    console.log('Pengguna terima pemasangan A2HS');
-                }
                 deferredPrompt = null;
             });
         });
     </script>
 
-    <!-- External JS (ORDER SANGAT PENTING: Data Dahulu, Kemudian Logic) -->
+    <!-- External JS (Data Dahulu, Kemudian Logic) -->
     <script src="questions.js"></script>
     <script src="script.js"></script>
 </body>
