@@ -1,6 +1,6 @@
 /**
  * GOOGLE ED PREP - LOGIC CONTROLLER
- * Versi: 4.1 (Pembaikan UI Task Tracker & Error Isolation)
+ * Versi: 4.2 (Isolasi Storan, Pembaikan CSS Tailwind, & Ketahanan Ralat)
  * * NOTA: Fail ini bergantung kepada 'questions.js' yang mesti dimuatkan
  * SEBELUM fail ini dalam HTML.
  */
@@ -9,16 +9,38 @@ if (typeof rawData === 'undefined') {
     console.error("RALAT KRITIKAL: 'questions.js' tidak dimuatkan! Sila semak fail HTML anda.");
 }
 
-// State
+// State Aplikasi
 let currentView = 'dashboard';
 let currentCategoryFilter = 'all';
 let flashcardIndex = 0;
 let shuffledFlashcards = [];
 let flashcardRevealed = false;
 
-// --- INIT & NAVIGATION ---
+// ==========================================
+// 1. PEMBUNGKUS STORAN SELAMAT (STORAGE WRAPPER)
+// Mengelakkan crash jika fail dijalankan secara tempatan (file://) atau mode privasi
+// ==========================================
+function saveToStorage(key, value) {
+    try {
+        localStorage.setItem(key, value);
+    } catch (e) {
+        console.warn("localStorage disekat. Rekod tanda semak hanya sementara untuk sesi ini.");
+    }
+}
+
+function getFromStorage(key) {
+    try {
+        return localStorage.getItem(key);
+    } catch (e) {
+        return null;
+    }
+}
+
+// ==========================================
+// 2. INISIALISASI UTAMA
+// Setiap komponen dijalankan secara berasingan untuk elak kegagalan berantai
+// ==========================================
 function init() {
-    // Pengasingan Ralat: Setiap modul berjalan secara bebas
     try {
         updateDashboardStats();
     } catch (e) {
@@ -28,7 +50,7 @@ function init() {
     try {
         renderChart();
     } catch (e) {
-        console.error("Ralat memuatkan carta (Semak sambungan internet CDN Chart.js):", e);
+        console.error("Ralat memuatkan carta (Semak talian Internet untuk fail CDN Chart.js):", e);
     }
 
     try {
@@ -38,7 +60,6 @@ function init() {
         console.error("Ralat memuatkan Bank Soalan:", e);
     }
     
-    // Inisialisasi Modul Senarai Semak GCE L1
     try {
         if (typeof tasksLevel1 !== 'undefined') {
             renderTasks(tasksLevel1, 'l1-tasks-container', 'L1', 'l1-progress-text', 'l1-progress-bar');
@@ -47,7 +68,6 @@ function init() {
         console.error("Ralat memuatkan Task Tracker L1:", e);
     }
 
-    // Inisialisasi Modul Senarai Semak GCE L2
     try {
         if (typeof tasksLevel2 !== 'undefined') {
             renderTasks(tasksLevel2, 'l2-tasks-container', 'L2', 'l2-progress-text', 'l2-progress-bar');
@@ -57,6 +77,9 @@ function init() {
     }
 }
 
+// ==========================================
+// 3. LOGIK PAPARAN: DASHBOARD
+// ==========================================
 function updateDashboardStats() {
     if (typeof rawData === 'undefined') return;
     const totalQ = rawData.length;
@@ -68,9 +91,7 @@ function updateDashboardStats() {
     }
 
     const statIntro = document.getElementById('stat-intro-count');
-    if(statIntro) {
-        statIntro.textContent = totalQ;
-    }
+    if(statIntro) statIntro.textContent = totalQ;
 
     const statTotalQ2 = document.getElementById('stat-total-q-2');
     if(statTotalQ2) statTotalQ2.textContent = totalQ;
@@ -99,7 +120,6 @@ function updateDashboardStats() {
     }
 
     const percentage = totalQ > 0 ? Math.round((maxCount / totalQ) * 100) : 0;
-
     const statTopCat = document.getElementById('stat-top-cat');
     const statTopDesc = document.getElementById('stat-top-cat-desc');
 
@@ -107,128 +127,14 @@ function updateDashboardStats() {
         statTopCat.textContent = maxCat;
         statTopCat.classList.remove('animate-pulse');
     }
-    if(statTopDesc) {
-        statTopDesc.textContent = `~${percentage}% daripada soalan`;
-    }
+    if(statTopDesc) statTopDesc.textContent = `~${percentage}% daripada soalan`;
 }
 
-function switchView(viewName) {
-    ['dashboard', 'study', 'flashcards'].forEach(v => {
-        const viewEl = document.getElementById(`view-${v}`);
-        const navEl = document.getElementById(`nav-${v}`);
-        if(viewEl) viewEl.classList.add('hidden');
-        if(navEl) {
-            navEl.classList.remove('bg-blue-50', 'text-blue-600');
-            navEl.classList.add('text-slate-600');
-        }
-    });
-
-    const activeViewEl = document.getElementById(`view-${viewName}`);
-    const activeNavEl = document.getElementById(`nav-${viewName}`);
-    
-    if(activeViewEl) activeViewEl.classList.remove('hidden');
-    if(activeNavEl) {
-        activeNavEl.classList.add('bg-blue-50', 'text-blue-600');
-        activeNavEl.classList.remove('text-slate-600');
-    }
-    
-    currentView = viewName;
-    
-    if(viewName === 'flashcards' && shuffledFlashcards.length === 0) {
-        setupFlashcards();
-    }
-}
-
-// --- TASK TRACKER LOGIC (L1 & L2) ---
-function renderTasks(taskData, containerId, storagePrefix, progressTextId, progressBarId) {
-    const container = document.getElementById(containerId);
-    if (!container || !taskData) return;
-
-    container.innerHTML = '';
-    let totalTasks = 0;
-    let completedTasks = 0;
-
-    taskData.forEach((section, sectionIndex) => {
-        const sectionDiv = document.createElement('div');
-        sectionDiv.className = 'mb-6';
-        
-        const sectionTitle = document.createElement('h4');
-        sectionTitle.className = 'font-bold text-slate-800 mb-3 border-b border-slate-200 pb-2 text-base';
-        sectionTitle.textContent = section.category;
-        sectionDiv.appendChild(sectionTitle);
-
-        const taskList = document.createElement('div');
-        taskList.className = 'space-y-3 pl-1';
-
-        section.tasks.forEach((task, taskIndex) => {
-            totalTasks++;
-            const taskId = `${storagePrefix}_${sectionIndex}_${taskIndex}`;
-            const isChecked = localStorage.getItem(taskId) === 'true';
-            if (isChecked) completedTasks++;
-
-            // Susunan Tailwind Peer dipastikan sebaris (siblings) supaya berfungsi
-            const colorClasses = storagePrefix === 'L2' 
-                ? 'peer-checked:bg-indigo-600 peer-checked:border-indigo-600' 
-                : 'peer-checked:bg-blue-600 peer-checked:border-blue-600';
-
-            const taskItem = document.createElement('label');
-            taskItem.className = 'flex items-start gap-3 cursor-pointer group';
-            
-            // Perhatikan <input>, <div>, dan <span> berada selari di bawah label
-            taskItem.innerHTML = `
-                <input type="checkbox" id="${taskId}" class="peer sr-only" ${isChecked ? 'checked' : ''} onchange="handleTaskToggle(this, '${containerId}', '${progressTextId}', '${progressBarId}', ${getTotalTasksCount(taskData)})">
-                
-                <div class="mt-0.5 shrink-0 w-5 h-5 border-2 border-slate-300 rounded bg-white ${colorClasses} flex items-center justify-center shadow-sm transition-all duration-200">
-                    <svg class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3.5" d="M5 13l4 4L19 7"></path></svg>
-                </div>
-                
-                <span class="text-sm font-medium text-slate-700 group-hover:text-slate-900 peer-checked:text-slate-400 peer-checked:line-through transition-all select-none leading-relaxed">${task}</span>
-            `;
-            taskList.appendChild(taskItem);
-        });
-
-        sectionDiv.appendChild(taskList);
-        container.appendChild(sectionDiv);
-    });
-
-    // Menjana UI kemajuan awal sewaktu bebanan laman
-    updateProgressUI(completedTasks, totalTasks, progressTextId, progressBarId);
-}
-
-function getTotalTasksCount(taskData) {
-    return taskData.reduce((total, section) => total + section.tasks.length, 0);
-}
-
-// Fungsi global untuk dicetuskan oleh input checkbox dalam HTML janaan dinamik
-window.handleTaskToggle = function(checkbox, containerId, progressTextId, progressBarId, totalTasks) {
-    // Simpan ke memori pelayar
-    localStorage.setItem(checkbox.id, checkbox.checked);
-    
-    const container = document.getElementById(containerId);
-    if(!container) return;
-    
-    // Kira semula jumlah kotak yang telah ditanda secara langsung dari DOM
-    const checkedBoxes = container.querySelectorAll('input[type="checkbox"]:checked').length;
-    
-    updateProgressUI(checkedBoxes, totalTasks, progressTextId, progressBarId);
-};
-
-function updateProgressUI(completed, total, textId, barId) {
-    const percentage = total === 0 ? 0 : Math.round((completed / total) * 100);
-    const textEl = document.getElementById(textId);
-    const barEl = document.getElementById(barId);
-    
-    if (textEl) textEl.textContent = `${percentage}%`;
-    if (barEl) barEl.style.width = `${percentage}%`;
-}
-
-// --- DASHBOARD CHARTS ---
 function renderChart() {
     const canvasEl = document.getElementById('topicChart');
     if(!canvasEl) return;
     
     const ctx = canvasEl.getContext('2d');
-    
     const categoryCounts = {};
     rawData.forEach(q => {
         const cleanCat = q.category.replace(/\(.*\)/, '').trim(); 
@@ -237,7 +143,6 @@ function renderChart() {
 
     const labels = Object.keys(categoryCounts);
     const data = Object.values(categoryCounts);
-    
     const colors = [
         '#4285F4', '#34A853', '#FBBC05', '#EA4335', 
         '#8AB4F8', '#81C995', '#FDE293', '#F28B82',
@@ -262,11 +167,7 @@ function renderChart() {
             plugins: {
                 legend: { position: 'right', labels: { boxWidth: 12, font: { size: 11 }, padding: 15 } },
                 tooltip: { 
-                    callbacks: {
-                        label: function(context) {
-                            return ` ${context.label}: ${context.raw} soalan`;
-                        }
-                    },
+                    callbacks: { label: function(context) { return ` ${context.label}: ${context.raw} soalan`; } },
                     backgroundColor: 'rgba(15, 23, 42, 0.9)', 
                     padding: 12,
                     cornerRadius: 8
@@ -277,7 +178,122 @@ function renderChart() {
     });
 }
 
-// --- STUDY LIST LOGIC ---
+// ==========================================
+// 4. LOGIK PENJEJAK KEMAJUAN TUGASAN (TASK TRACKER L1 & L2)
+// ==========================================
+function renderTasks(taskData, containerId, storagePrefix, progressTextId, progressBarId) {
+    const container = document.getElementById(containerId);
+    if (!container || !taskData) return;
+
+    container.innerHTML = '';
+    let totalTasks = 0;
+    let completedTasks = 0;
+
+    taskData.forEach((section, sectionIndex) => {
+        const sectionDiv = document.createElement('div');
+        sectionDiv.className = 'mb-6';
+        
+        const sectionTitle = document.createElement('h4');
+        sectionTitle.className = 'font-bold text-slate-800 mb-3 border-b border-slate-200 pb-2 text-base';
+        sectionTitle.textContent = section.category;
+        sectionDiv.appendChild(sectionTitle);
+
+        const taskList = document.createElement('div');
+        taskList.className = 'space-y-3 pl-1';
+
+        section.tasks.forEach((task, taskIndex) => {
+            totalTasks++;
+            const taskId = `${storagePrefix}_${sectionIndex}_${taskIndex}`;
+            const isChecked = getFromStorage(taskId) === 'true';
+            if (isChecked) completedTasks++;
+
+            // PEMBEDAHAN: Struktur DOM diperbetulkan untuk serasi dengan Tailwind 'peer'.
+            // Input, kotak hiasan, dan span teks MESTILAH berada dalam hirarki sibling yang sama.
+            const colorClasses = storagePrefix === 'L2' 
+                ? 'peer-checked:bg-indigo-600 peer-checked:border-indigo-600' 
+                : 'peer-checked:bg-blue-600 peer-checked:border-blue-600';
+
+            const taskItem = document.createElement('label');
+            taskItem.className = 'flex items-start gap-3 cursor-pointer group relative';
+            
+            // Optical Illusion Checkmark: svg berwarna putih. Apabila background box bertukar gelap, svg akan jelas kelihatan.
+            taskItem.innerHTML = `
+                <input type="checkbox" id="${taskId}" class="peer sr-only" ${isChecked ? 'checked' : ''} onchange="handleTaskToggle(this, '${containerId}', '${progressTextId}', '${progressBarId}', ${getTotalTasksCount(taskData)})">
+                
+                <div class="mt-0.5 shrink-0 w-5 h-5 border-2 border-slate-300 rounded bg-white ${colorClasses} flex items-center justify-center shadow-sm transition-all duration-200">
+                    <svg class="w-3.5 h-3.5 text-white opacity-0 peer-checked:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3.5" d="M5 13l4 4L19 7"></path></svg>
+                </div>
+                
+                <span class="text-sm font-medium text-slate-700 group-hover:text-slate-900 peer-checked:text-slate-400 peer-checked:line-through transition-all select-none leading-relaxed">${task}</span>
+            `;
+            taskList.appendChild(taskItem);
+        });
+
+        sectionDiv.appendChild(taskList);
+        container.appendChild(sectionDiv);
+    });
+
+    updateProgressUI(completedTasks, totalTasks, progressTextId, progressBarId);
+}
+
+function getTotalTasksCount(taskData) {
+    return taskData.reduce((total, section) => total + section.tasks.length, 0);
+}
+
+window.handleTaskToggle = function(checkbox, containerId, progressTextId, progressBarId, totalTasks) {
+    // Simpan ke storan dengan Wrapper
+    saveToStorage(checkbox.id, checkbox.checked);
+    
+    const container = document.getElementById(containerId);
+    if(!container) return;
+    
+    // Kira secara real-time dari Checkbox di dalam DOM
+    const checkedBoxes = container.querySelectorAll('input[type="checkbox"]:checked').length;
+    updateProgressUI(checkedBoxes, totalTasks, progressTextId, progressBarId);
+};
+
+function updateProgressUI(completed, total, textId, barId) {
+    const percentage = total === 0 ? 0 : Math.round((completed / total) * 100);
+    const textEl = document.getElementById(textId);
+    const barEl = document.getElementById(barId);
+    
+    if (textEl) textEl.textContent = `${percentage}%`;
+    if (barEl) barEl.style.width = `${percentage}%`;
+}
+
+// ==========================================
+// 5. PENUKARAN PAPARAN (VIEW SWITCHER)
+// ==========================================
+window.switchView = function(viewName) {
+    ['dashboard', 'study', 'flashcards'].forEach(v => {
+        const viewEl = document.getElementById(`view-${v}`);
+        const navEl = document.getElementById(`nav-${v}`);
+        if(viewEl) viewEl.classList.add('hidden');
+        if(navEl) {
+            navEl.classList.remove('bg-blue-50', 'text-blue-600');
+            navEl.classList.add('text-slate-600');
+        }
+    });
+
+    const activeViewEl = document.getElementById(`view-${viewName}`);
+    const activeNavEl = document.getElementById(`nav-${viewName}`);
+    
+    if(activeViewEl) activeViewEl.classList.remove('hidden');
+    if(activeNavEl) {
+        activeNavEl.classList.add('bg-blue-50', 'text-blue-600');
+        activeNavEl.classList.remove('text-slate-600');
+    }
+    
+    currentView = viewName;
+    
+    if(viewName === 'flashcards' && shuffledFlashcards.length === 0) {
+        setupFlashcards();
+    }
+};
+
+// ==========================================
+// 6. BANK SOALAN (STUDY LIST)
+// ==========================================
 function renderCategories() {
     const categories = [...new Set(rawData.map(q => q.category))].sort();
     const container = document.getElementById('category-filters');
@@ -378,7 +394,9 @@ window.toggleAccordion = function(id) {
     }
 };
 
-// --- FLASHCARD LOGIC ---
+// ==========================================
+// 7. KAD IMBASAN (FLASHCARDS)
+// ==========================================
 function setupFlashcards() {
     shuffledFlashcards = [...rawData].sort(() => Math.random() - 0.5);
     flashcardIndex = 0;
@@ -446,7 +464,7 @@ window.nextCard = function(known, event) {
     loadCard();
 };
 
-window.switchView = switchView;
-
-// Memicu inisialisasi pada proses DOMContentLoaded
+// ==========================================
+// START
+// ==========================================
 window.addEventListener('DOMContentLoaded', init);

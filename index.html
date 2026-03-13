@@ -5,13 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Google Ed Prep: Hab Bengkel Interaktif</title>
     
-    <!-- PWA CONFIGURATION -->
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#2563eb">
-    <link rel="apple-touch-icon" href="icoppdag.png">
-    
     <!-- FAVICON -->
-    <link rel="icon" href="icoppdag.png" type="image/jpeg">
+    <link rel="icon" href="icoppdag.png" type="image/png">
     
     <!-- LIBRARIES -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -54,10 +49,6 @@
                     Selamat datang ke hab interaktif persediaan <strong>Google Certified Educator & Gemini</strong>. 
                     Pilih laluan modul anda di bawah untuk mula menjejaki kemajuan tugasan praktikal atau mengulangkaji <strong id="stat-intro-count" class="text-blue-600">...</strong> soalan teori.
                 </p>
-                <!-- Install PWA Button -->
-                <button id="install-btn" class="hidden mt-4 bg-slate-900 text-white px-5 py-2 rounded-full text-sm font-medium hover:bg-slate-800 transition shadow-lg mx-auto">
-                    📲 Pasang Aplikasi (Install App)
-                </button>
             </div>
 
             <!-- Tracks Navigation (Laluan Modul) -->
@@ -334,22 +325,22 @@
     <!-- Skrip Ringkas untuk Penukaran Track UI secara Manual -->
     <script>
         function switchTrack(track) {
-            // Hide all tracks
+            // Sembunyikan semua trek
             ['gemini', 'level1', 'level2'].forEach(t => {
                 document.getElementById('track-' + t).classList.add('hidden');
                 document.getElementById('track-' + t).classList.remove('block');
                 
-                // Reset Button styling
+                // Tetap semula gaya butang
                 const btn = document.getElementById('tab-' + t);
                 btn.classList.remove('bg-blue-600', 'text-white', 'shadow-md', 'border-transparent', 'bg-indigo-600');
                 btn.classList.add('bg-white', 'text-slate-600', 'border-slate-200');
             });
             
-            // Show selected track
+            // Paparkan trek pilihan
             document.getElementById('track-' + track).classList.remove('hidden');
             document.getElementById('track-' + track).classList.add('block');
             
-            // Style active button
+            // Gayakan butang aktif
             const activeBtn = document.getElementById('tab-' + track);
             activeBtn.classList.remove('bg-white', 'text-slate-600', 'border-slate-200');
             
@@ -361,35 +352,7 @@
         }
     </script>
 
-    <!-- SERVICE WORKER REGISTRATION SCRIPT -->
-    <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js')
-                    .catch(err => console.error('Pendaftaran Service Worker gagal:', err));
-            });
-        }
-
-        // Install Button Logic
-        let deferredPrompt;
-        const installBtn = document.getElementById('install-btn');
-
-        window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault();
-            deferredPrompt = e;
-            installBtn.classList.remove('hidden');
-        });
-
-        installBtn.addEventListener('click', (e) => {
-            installBtn.classList.add('hidden');
-            deferredPrompt.prompt();
-            deferredPrompt.userChoice.then((choiceResult) => {
-                deferredPrompt = null;
-            });
-        });
-    </script>
-
-    <!-- External JS (Data Dahulu, Kemudian Logic) -->
+    <!-- External JS (Pangkalan Data dan Logik Permukaan) -->
     <script src="questions.js"></script>
     <script src="script.js"></script>
 </body>
