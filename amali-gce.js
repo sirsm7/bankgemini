@@ -1,13 +1,13 @@
 // amali-gce.js
 // Logic interaktif untuk amali-helper.html.
-// Versi V2 menyokong dropdown exam/lab, common start steps, guided step aktif, inline copy blocks, dan progress localStorage.
+// Versi V3 menyokong dropdown exam/lab, common start steps per lab session, guided step aktif, inline copy blocks, dan progress localStorage.
 // Data sumber dibaca daripada window.AMALI_GCE_DATA yang disediakan oleh amali-gce-data.js.
 
 (function () {
     'use strict';
 
     const STORAGE_KEY = 'amaliGceProgressV2';
-    const SESSION_KEY = 'amaliGceSessionV2';
+    const SESSION_KEY = 'amaliGceSessionV3';
     const COPY_SUCCESS_DURATION = 1800;
 
     const state = {
@@ -16,7 +16,9 @@
         activeStepIndex: 0,
         searchQuery: '',
         showAllSteps: false,
-        progress: {}
+        progress: {},
+        commonStepProgress: {},
+        prepConfirmedLabId: ''
     };
 
     const selectors = {
@@ -91,6 +93,8 @@
         state.activeLabId = typeof session.activeLabId === 'string' ? session.activeLabId : '';
         state.activeStepIndex = Number.isInteger(session.activeStepIndex) ? session.activeStepIndex : 0;
         state.showAllSteps = Boolean(session.showAllSteps);
+        state.commonStepProgress = {};
+        state.prepConfirmedLabId = '';
     }
 
     function saveProgress() {
@@ -161,6 +165,10 @@
         return `${scope}::${stepId}`;
     }
 
+    function getCommonProgressKey(stepId) {
+        return `${state.activeLabId || 'no-lab'}::${stepId}`;
+    }
+
     function isStepComplete(scope, stepId) {
         return Boolean(state.progress[getProgressKey(scope, stepId)]);
     }
@@ -177,17 +185,70 @@
         saveProgress();
     }
 
-    function isCommonComplete() {
-        const steps = getCommonSteps();
-        if (steps.length === 0) return true;
+    function isCommonStepComplete(stepId) {
+        return Boolean(state.commonStepProgress[getCommonProgressKey(stepId)]);
+    }
 
-        return steps.every((step) => isStepComplete('common', step.id));
+    function setCommonStepComplete(stepId, isComplete) {
+        const key = getCommonProgressKey(stepId);
+
+        if (isComplete) {
+            state.commonStepProgress[key] = true;
+        } else {
+            delete state.commonStepProgress[key];
+        }
+
+        syncPrepConfirmationFromCommonSteps();
+    }
+
+    function resetCommonForActiveLab() {
+        state.commonStepProgress = {};
+        state.prepConfirmedLabId = '';
+    }
+
+    function isCommonComplete() {
+        const lab = getActiveLab();
+        const steps = getCommonSteps();
+
+        if (!lab || steps.length === 0) return false;
+        if (state.prepConfirmedLabId !== lab.id) return false;
+
+        return steps.every((step) => isCommonStepComplete(step.id));
+    }
+
+    function syncPrepConfirmationFromCommonSteps() {
+        const lab = getActiveLab();
+        const steps = getCommonSteps();
+
+        if (!lab || steps.length === 0) {
+            state.prepConfirmedLabId = '';
+            return;
+        }
+
+        const allComplete = steps.every((step) => isCommonStepComplete(step.id));
+        state.prepConfirmedLabId = allComplete ? lab.id : '';
     }
 
     function setCommonComplete(isComplete) {
-        getCommonSteps().forEach((step) => {
-            setStepComplete('common', step.id, isComplete);
+        const lab = getActiveLab();
+        const steps = getCommonSteps();
+
+        if (!lab) {
+            resetCommonForActiveLab();
+            return;
+        }
+
+        steps.forEach((step) => {
+            const key = getCommonProgressKey(step.id);
+
+            if (isComplete) {
+                state.commonStepProgress[key] = true;
+            } else {
+                delete state.commonStepProgress[key];
+            }
         });
+
+        state.prepConfirmedLabId = isComplete ? lab.id : '';
     }
 
     function getLabProgress(lab) {
@@ -272,6 +333,11 @@
             return;
         }
 
+        if (!isCommonComplete() && state.activeStepIndex > 0) {
+            state.activeStepIndex = 0;
+            return;
+        }
+
         if (state.activeStepIndex < 0) {
             state.activeStepIndex = 0;
         }
@@ -282,6 +348,8 @@
     }
 
     function findFirstIncompleteStepIndex(lab) {
+        if (!isCommonComplete()) return 0;
+
         const steps = getLabSteps(lab);
         const index = steps.findIndex((step) => !isStepComplete(lab.id, step.id));
         return index === -1 ? Math.max(steps.length - 1, 0) : index;
@@ -447,7 +515,7 @@
         const scope = options && options.scope ? options.scope : 'lab';
         const lab = getActiveLab();
         const progressScope = scope === 'common' ? 'common' : lab ? lab.id : 'lab';
-        const complete = isStepComplete(progressScope, step.id);
+        const complete = scope === 'common' ? isCommonStepComplete(step.id) : isStepComplete(progressScope, step.id);
         const copyBlocksHtml = renderCopyBlocks(step.copyBlocks);
         const stepNumber = options && Number.isInteger(options.stepNumber) ? options.stepNumber : null;
         const totalSteps = options && Number.isInteger(options.totalSteps) ? options.totalSteps : null;
@@ -488,6 +556,7 @@
         const commonStart = data && data.commonStart ? data.commonStart : null;
         const commonSteps = getCommonSteps();
         const commonDone = isCommonComplete();
+        const firstCommonStep = commonSteps.length > 0 ? commonSteps[0] : null;
 
         container.innerHTML = `
             <section class="rounded-3xl border ${commonDone ? 'border-emerald-300/20 bg-emerald-950/20' : 'border-amber-300/20 bg-amber-950/20'} p-5 md:p-6 shadow-xl shadow-black/10">
@@ -495,25 +564,33 @@
                     <div>
                         <div class="inline-flex items-center gap-2 rounded-full border ${commonDone ? 'border-emerald-300/30 bg-emerald-400/10 text-emerald-200' : 'border-amber-300/30 bg-amber-400/10 text-amber-200'} px-3 py-1 text-xs font-bold uppercase tracking-wider">
                             <span class="h-2 w-2 rounded-full ${commonDone ? 'bg-emerald-300' : 'bg-amber-300'}"></span>
-                            ${commonDone ? 'Selesai' : 'Wajib sebelum lab'}
+                            ${commonDone ? 'Selesai untuk lab ini' : 'Wajib sebelum lab ini'}
                         </div>
                         <h2 class="mt-3 text-xl font-black text-white">${escapeHtml(commonStart && commonStart.title ? commonStart.title : 'Persediaan Awal Semua Lab')}</h2>
                         <p class="mt-2 max-w-3xl text-sm leading-relaxed text-slate-400">${escapeHtml(commonStart && commonStart.description ? commonStart.description : '')}</p>
+                        <p class="mt-2 max-w-3xl text-xs leading-relaxed text-amber-100/80">Status persediaan awal ini hanya sah untuk lab yang sedang dipilih. Jika tukar lab atau reload page, ia perlu disahkan semula.</p>
                     </div>
-                    <button type="button" id="toggle-common-complete-btn" class="rounded-xl border ${commonDone ? 'border-slate-600 bg-slate-800/80 text-slate-300 hover:bg-slate-700' : 'border-emerald-300/30 bg-emerald-500/15 text-emerald-100 hover:bg-emerald-500/25'} px-4 py-3 text-sm font-bold transition-all active:scale-95">
-                        ${commonDone ? 'Reset Persediaan' : 'Saya sudah selesai persediaan awal'}
-                    </button>
+                    <div class="flex flex-col gap-2 sm:flex-row md:flex-col">
+                        <button type="button" id="open-guest-profile-btn" class="rounded-xl border border-cyan-300/30 bg-cyan-500/15 px-4 py-3 text-sm font-bold text-cyan-100 transition-all hover:bg-cyan-500/25 active:scale-95">
+                            Buka Guest Profile
+                        </button>
+                        <button type="button" id="toggle-common-complete-btn" class="rounded-xl border ${commonDone ? 'border-slate-600 bg-slate-800/80 text-slate-300 hover:bg-slate-700' : 'border-emerald-300/30 bg-emerald-500/15 text-emerald-100 hover:bg-emerald-500/25'} px-4 py-3 text-sm font-bold transition-all active:scale-95">
+                            ${commonDone ? 'Reset Persediaan' : 'Saya sudah selesai persediaan awal'}
+                        </button>
+                    </div>
                 </div>
 
                 <div class="mt-5 grid grid-cols-1 gap-3 md:grid-cols-2">
                     ${commonSteps.map((step, index) => {
-                        const complete = isStepComplete('common', step.id);
+                        const complete = isCommonStepComplete(step.id);
+                        const isGuestStep = firstCommonStep && firstCommonStep.id === step.id;
+
                         return `
                             <button type="button" data-common-step-id="${escapeHtml(step.id)}" class="common-step-toggle rounded-2xl border ${complete ? 'border-emerald-300/20 bg-emerald-400/10' : 'border-white/10 bg-slate-900/60 hover:bg-slate-800/80'} p-4 text-left transition-all">
                                 <div class="flex items-start gap-3">
                                     <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${complete ? 'bg-emerald-400/20 text-emerald-200' : 'bg-white/5 text-slate-400'} text-xs font-black">${complete ? '✓' : index + 1}</span>
                                     <span>
-                                        <span class="block text-sm font-bold text-white">${escapeHtml(step.title || '')}</span>
+                                        <span class="block text-sm font-bold text-white">${isGuestStep ? 'Buka Guest Profile' : escapeHtml(step.title || '')}</span>
                                         <span class="mt-1 block text-xs leading-relaxed ${complete ? 'text-emerald-200/70' : 'text-slate-400'}">${escapeHtml(step.before || '')}${step.after ? ' ' + escapeHtml(step.after) : ''}</span>
                                     </span>
                                 </div>
@@ -606,6 +683,7 @@
         const isFirst = state.activeStepIndex === 0;
         const isLast = state.activeStepIndex === steps.length - 1;
         const complete = isStepComplete(lab.id, step.id);
+        const prepRequired = isFirst && !isCommonComplete();
 
         container.innerHTML = `
             <section class="space-y-4">
@@ -615,16 +693,22 @@
                     totalSteps: steps.length
                 })}
 
+                ${prepRequired ? `
+                    <div class="rounded-2xl border border-amber-300/20 bg-amber-950/30 p-4 text-sm leading-relaxed text-amber-100">
+                        Sahkan Persediaan Awal Semua Lab dahulu sebelum meneruskan Langkah 1.
+                    </div>
+                ` : ''}
+
                 <div class="flex flex-col gap-3 rounded-3xl border border-white/10 bg-slate-900/60 p-4 shadow-xl shadow-black/10 sm:flex-row sm:items-center sm:justify-between">
                     <button type="button" id="previous-step-btn" class="rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-bold text-slate-300 transition-all hover:bg-white/10 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40" ${isFirst ? 'disabled' : ''}>
                         Sebelumnya
                     </button>
 
                     <div class="text-center text-xs text-slate-500">
-                        ${complete ? 'Langkah ini telah ditanda selesai.' : 'Klik selesai untuk paparkan langkah seterusnya.'}
+                        ${prepRequired ? 'Butang ini dikunci sehingga persediaan awal disahkan.' : complete ? 'Langkah ini telah ditanda selesai.' : 'Klik selesai untuk paparkan langkah seterusnya.'}
                     </div>
 
-                    <button type="button" id="complete-next-step-btn" class="rounded-xl border ${isLast ? 'border-emerald-300/30 bg-emerald-500/15 text-emerald-100 hover:bg-emerald-500/25' : 'border-purple-300/30 bg-purple-500/15 text-purple-100 hover:bg-purple-500/25'} px-4 py-3 text-sm font-bold transition-all active:scale-95">
+                    <button type="button" id="complete-next-step-btn" class="rounded-xl border ${isLast ? 'border-emerald-300/30 bg-emerald-500/15 text-emerald-100 hover:bg-emerald-500/25' : 'border-purple-300/30 bg-purple-500/15 text-purple-100 hover:bg-purple-500/25'} px-4 py-3 text-sm font-bold transition-all active:scale-95 disabled:cursor-not-allowed disabled:opacity-40" ${prepRequired ? 'disabled' : ''}>
                         ${isLast ? 'Tandakan Selesai' : 'Selesai & Seterusnya'}
                     </button>
                 </div>
@@ -837,6 +921,12 @@
 
         clampActiveStepIndex();
 
+        if (state.activeStepIndex === 0 && !isCommonComplete()) {
+            showToast('Sahkan Persediaan Awal Semua Lab dahulu sebelum meneruskan Langkah 1.', 'error');
+            renderModernView();
+            return;
+        }
+
         const currentStep = steps[state.activeStepIndex];
         setStepComplete(lab.id, currentStep.id, true);
 
@@ -861,6 +951,13 @@
         const lab = getActiveLab();
         if (!lab) return;
 
+        if (!isCommonComplete()) {
+            state.activeStepIndex = 0;
+            showToast('Sahkan Persediaan Awal Semua Lab dahulu sebelum pergi ke langkah belum selesai.', 'error');
+            renderModernView();
+            return;
+        }
+
         state.activeStepIndex = findFirstIncompleteStepIndex(lab);
         renderModernView();
     }
@@ -874,8 +971,9 @@
         });
 
         state.activeStepIndex = 0;
+        resetCommonForActiveLab();
         saveProgress();
-        showToast('Progress lab telah direset.', 'success');
+        showToast('Progress lab dan persediaan awal telah direset.', 'success');
         renderModernView();
     }
 
@@ -886,6 +984,7 @@
         state.activeLabId = '';
         state.activeStepIndex = 0;
         state.showAllSteps = false;
+        resetCommonForActiveLab();
 
         renderModernView();
     }
@@ -897,14 +996,16 @@
             state.activeLabId = '';
             state.activeStepIndex = 0;
             state.showAllSteps = false;
+            resetCommonForActiveLab();
             renderModernView();
             return;
         }
 
         state.activeLevelId = labRecord.level.id;
         state.activeLabId = labRecord.lab.id;
-        state.activeStepIndex = findFirstIncompleteStepIndex(labRecord.lab);
+        state.activeStepIndex = 0;
         state.showAllSteps = false;
+        resetCommonForActiveLab();
 
         renderModernView();
     }
@@ -921,6 +1022,7 @@
                 state.activeLabId = '';
                 state.activeStepIndex = 0;
                 state.showAllSteps = false;
+                resetCommonForActiveLab();
             }
         }
 
@@ -971,10 +1073,22 @@
                 return;
             }
 
+            const openGuestProfileBtn = event.target.closest('#open-guest-profile-btn');
+            if (openGuestProfileBtn) {
+                const firstStep = getCommonSteps()[0];
+                if (firstStep) {
+                    setCommonStepComplete(firstStep.id, true);
+                }
+                showToast('Sila buka Guest Profile secara manual di Chrome, kemudian teruskan langkah persediaan awal.', 'success');
+                renderModernView();
+                return;
+            }
+
             const toggleCommonBtn = event.target.closest('#toggle-common-complete-btn');
             if (toggleCommonBtn) {
-                setCommonComplete(!isCommonComplete());
-                showToast(isCommonComplete() ? 'Persediaan awal ditanda selesai.' : 'Persediaan awal direset.', 'success');
+                const nextStatus = !isCommonComplete();
+                setCommonComplete(nextStatus);
+                showToast(nextStatus ? 'Persediaan awal untuk lab ini ditanda selesai.' : 'Persediaan awal untuk lab ini direset.', 'success');
                 renderModernView();
                 return;
             }
@@ -982,7 +1096,7 @@
             const commonStepToggle = event.target.closest('[data-common-step-id]');
             if (commonStepToggle) {
                 const stepId = commonStepToggle.getAttribute('data-common-step-id');
-                setStepComplete('common', stepId, !isStepComplete('common', stepId));
+                setCommonStepComplete(stepId, !isCommonStepComplete(stepId));
                 renderModernView();
                 return;
             }
@@ -1022,8 +1136,14 @@
             if (jumpStepBtn) {
                 const index = Number(jumpStepBtn.getAttribute('data-jump-step-index'));
                 if (Number.isInteger(index)) {
-                    state.activeStepIndex = index;
-                    state.showAllSteps = false;
+                    if (!isCommonComplete() && index > 0) {
+                        state.activeStepIndex = 0;
+                        state.showAllSteps = false;
+                        showToast('Sahkan Persediaan Awal Semua Lab dahulu sebelum lompat ke langkah lain.', 'error');
+                    } else {
+                        state.activeStepIndex = index;
+                        state.showAllSteps = false;
+                    }
                     renderModernView();
                 }
             }
@@ -1038,6 +1158,7 @@
             state.activeLabId = '';
             state.activeStepIndex = 0;
             state.showAllSteps = false;
+            resetCommonForActiveLab();
             return;
         }
 
@@ -1047,7 +1168,13 @@
                 state.activeLabId = '';
                 state.activeStepIndex = 0;
                 state.showAllSteps = false;
+                resetCommonForActiveLab();
             }
+        }
+
+        if (state.activeLabId) {
+            resetCommonForActiveLab();
+            state.activeStepIndex = 0;
         }
 
         clampActiveStepIndex();
