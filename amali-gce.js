@@ -1,17 +1,21 @@
 // amali-gce.js
 // Logic interaktif untuk amali-helper.html.
+// Versi V2 menyokong dropdown exam/lab, common start steps, guided step aktif, inline copy blocks, dan progress localStorage.
 // Data sumber dibaca daripada window.AMALI_GCE_DATA yang disediakan oleh amali-gce-data.js.
 
 (function () {
     'use strict';
 
-    const STORAGE_KEY = 'amaliGceProgress';
+    const STORAGE_KEY = 'amaliGceProgressV2';
+    const SESSION_KEY = 'amaliGceSessionV2';
     const COPY_SUCCESS_DURATION = 1800;
 
     const state = {
         activeLevelId: '',
         activeLabId: '',
+        activeStepIndex: 0,
         searchQuery: '',
+        showAllSteps: false,
         progress: {}
     };
 
@@ -19,12 +23,22 @@
         appTitle: 'app-title',
         appSubtitle: 'app-subtitle',
         sourceBadge: 'source-badge',
-        levelTabs: 'level-tabs',
-        labCards: 'lab-cards',
-        labDetail: 'lab-detail',
+        examSelect: 'exam-select',
+        labSelect: 'lab-select',
+        examSelectWrap: 'exam-select-wrap',
+        labSelectWrap: 'lab-select-wrap',
+        guidedShell: 'guided-shell',
+        guidedSummary: 'guided-summary',
+        commonStartPanel: 'common-start-panel',
+        labProgressPanel: 'lab-progress-panel',
+        guidedStepPanel: 'guided-step-panel',
+        allStepsPanel: 'all-steps-panel',
         searchInput: 'search-input',
         clearSearchBtn: 'clear-search-btn',
-        toast: 'toast'
+        toast: 'toast',
+        legacyLevelTabs: 'level-tabs',
+        legacyLabCards: 'lab-cards',
+        legacyLabDetail: 'lab-detail'
     };
 
     function getData() {
@@ -40,7 +54,7 @@
     }
 
     function escapeHtml(value) {
-        return String(value)
+        return String(value || '')
             .replace(/&/g, '&amp;')
             .replace(/</g, '&lt;')
             .replace(/>/g, '&gt;')
@@ -52,22 +66,44 @@
         return String(value || '').trim().toLowerCase();
     }
 
-    function loadProgress() {
+    function loadJson(storageKey, fallback) {
         try {
-            const savedProgress = window.localStorage.getItem(STORAGE_KEY);
-            state.progress = savedProgress ? JSON.parse(savedProgress) : {};
+            const value = window.localStorage.getItem(storageKey);
+            return value ? JSON.parse(value) : fallback;
         } catch (error) {
-            console.warn('Gagal membaca progress amali:', error);
-            state.progress = {};
+            console.warn(`Gagal membaca ${storageKey}:`, error);
+            return fallback;
         }
     }
 
-    function saveProgress() {
+    function saveJson(storageKey, value) {
         try {
-            window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state.progress));
+            window.localStorage.setItem(storageKey, JSON.stringify(value));
         } catch (error) {
-            console.warn('Gagal menyimpan progress amali:', error);
+            console.warn(`Gagal menyimpan ${storageKey}:`, error);
         }
+    }
+
+    function loadState() {
+        const session = loadJson(SESSION_KEY, {});
+        state.progress = loadJson(STORAGE_KEY, {});
+        state.activeLevelId = typeof session.activeLevelId === 'string' ? session.activeLevelId : '';
+        state.activeLabId = typeof session.activeLabId === 'string' ? session.activeLabId : '';
+        state.activeStepIndex = Number.isInteger(session.activeStepIndex) ? session.activeStepIndex : 0;
+        state.showAllSteps = Boolean(session.showAllSteps);
+    }
+
+    function saveProgress() {
+        saveJson(STORAGE_KEY, state.progress);
+    }
+
+    function saveSession() {
+        saveJson(SESSION_KEY, {
+            activeLevelId: state.activeLevelId,
+            activeLabId: state.activeLabId,
+            activeStepIndex: state.activeStepIndex,
+            showAllSteps: state.showAllSteps
+        });
     }
 
     function getLevelById(levelId) {
@@ -82,12 +118,12 @@
         if (!data) return null;
 
         for (const level of data.levels) {
-            const lab = level.labs.find((item) => item.id === labId);
+            const lab = Array.isArray(level.labs)
+                ? level.labs.find((item) => item.id === labId)
+                : null;
+
             if (lab) {
-                return {
-                    level,
-                    lab
-                };
+                return { level, lab };
             }
         }
 
@@ -98,32 +134,39 @@
         return getLevelById(state.activeLevelId);
     }
 
+    function getActiveLabRecord() {
+        return getLabById(state.activeLabId);
+    }
+
     function getActiveLab() {
-        const labRecord = getLabById(state.activeLabId);
-        return labRecord ? labRecord.lab : null;
+        const record = getActiveLabRecord();
+        return record ? record.lab : null;
     }
 
-    function initializeState(data) {
-        if (!state.activeLevelId && data.levels.length > 0) {
-            state.activeLevelId = data.levels[0].id;
+    function getCommonSteps() {
+        const data = getData();
+        if (!data || !data.commonStart || !Array.isArray(data.commonStart.steps)) {
+            return [];
         }
 
-        const activeLevel = getActiveLevel();
-        if (!state.activeLabId && activeLevel && activeLevel.labs.length > 0) {
-            state.activeLabId = activeLevel.labs[0].id;
-        }
+        return data.commonStart.steps;
     }
 
-    function getStepKey(labId, stepIndex) {
-        return `${labId}::step-${stepIndex}`;
+    function getLabSteps(lab) {
+        if (!lab || !Array.isArray(lab.guidedSteps)) return [];
+        return lab.guidedSteps;
     }
 
-    function isStepComplete(labId, stepIndex) {
-        return Boolean(state.progress[getStepKey(labId, stepIndex)]);
+    function getProgressKey(scope, stepId) {
+        return `${scope}::${stepId}`;
     }
 
-    function setStepComplete(labId, stepIndex, isComplete) {
-        const key = getStepKey(labId, stepIndex);
+    function isStepComplete(scope, stepId) {
+        return Boolean(state.progress[getProgressKey(scope, stepId)]);
+    }
+
+    function setStepComplete(scope, stepId, isComplete) {
+        const key = getProgressKey(scope, stepId);
 
         if (isComplete) {
             state.progress[key] = true;
@@ -134,8 +177,23 @@
         saveProgress();
     }
 
+    function isCommonComplete() {
+        const steps = getCommonSteps();
+        if (steps.length === 0) return true;
+
+        return steps.every((step) => isStepComplete('common', step.id));
+    }
+
+    function setCommonComplete(isComplete) {
+        getCommonSteps().forEach((step) => {
+            setStepComplete('common', step.id, isComplete);
+        });
+    }
+
     function getLabProgress(lab) {
-        if (!lab || !Array.isArray(lab.steps) || lab.steps.length === 0) {
+        const steps = getLabSteps(lab);
+
+        if (steps.length === 0) {
             return {
                 completed: 0,
                 total: 0,
@@ -143,14 +201,14 @@
             };
         }
 
-        const completed = lab.steps.reduce((count, _step, index) => {
-            return count + (isStepComplete(lab.id, index) ? 1 : 0);
+        const completed = steps.reduce((count, step) => {
+            return count + (isStepComplete(lab.id, step.id) ? 1 : 0);
         }, 0);
 
         return {
             completed,
-            total: lab.steps.length,
-            percent: Math.round((completed / lab.steps.length) * 100)
+            total: steps.length,
+            percent: Math.round((completed / steps.length) * 100)
         };
     }
 
@@ -161,20 +219,72 @@
         if (!query) return level.labs;
 
         return level.labs.filter((lab) => {
-            const copyText = Array.isArray(lab.copyBlocks)
-                ? lab.copyBlocks.map((block) => `${block.label} ${block.text}`).join(' ')
-                : '';
+            const guidedText = getLabSteps(lab).map((step) => {
+                const copyText = Array.isArray(step.copyBlocks)
+                    ? step.copyBlocks.map((block) => `${block.label} ${block.text}`).join(' ')
+                    : '';
+
+                return [step.title, step.before, copyText, step.after].join(' ');
+            }).join(' ');
 
             const searchableText = [
                 lab.title,
                 lab.app,
                 lab.summary,
-                copyText,
-                Array.isArray(lab.steps) ? lab.steps.join(' ') : ''
+                guidedText
             ].join(' ');
 
             return normalizeText(searchableText).includes(query);
         });
+    }
+
+    function getStepByCopyId(copyId) {
+        const lab = getActiveLab();
+        if (!lab) return null;
+
+        for (const step of getLabSteps(lab)) {
+            if (!Array.isArray(step.copyBlocks)) continue;
+
+            const block = step.copyBlocks.find((item) => item.id === copyId);
+            if (block) {
+                return { step, block };
+            }
+        }
+
+        for (const step of getCommonSteps()) {
+            if (!Array.isArray(step.copyBlocks)) continue;
+
+            const block = step.copyBlocks.find((item) => item.id === copyId);
+            if (block) {
+                return { step, block };
+            }
+        }
+
+        return null;
+    }
+
+    function clampActiveStepIndex() {
+        const lab = getActiveLab();
+        const steps = getLabSteps(lab);
+
+        if (steps.length === 0) {
+            state.activeStepIndex = 0;
+            return;
+        }
+
+        if (state.activeStepIndex < 0) {
+            state.activeStepIndex = 0;
+        }
+
+        if (state.activeStepIndex > steps.length - 1) {
+            state.activeStepIndex = steps.length - 1;
+        }
+    }
+
+    function findFirstIncompleteStepIndex(lab) {
+        const steps = getLabSteps(lab);
+        const index = steps.findIndex((step) => !isStepComplete(lab.id, step.id));
+        return index === -1 ? Math.max(steps.length - 1, 0) : index;
     }
 
     function renderMeta(data) {
@@ -195,116 +305,129 @@
         }
     }
 
-    function renderLevelTabs() {
+    function renderExamDropdown() {
         const data = getData();
-        const container = getElement(selectors.levelTabs);
-        if (!data || !container) return;
+        const examSelect = getElement(selectors.examSelect);
+        if (!data || !examSelect) return;
 
-        container.innerHTML = data.levels.map((level) => {
-            const isActive = level.id === state.activeLevelId;
-            const totalLabs = Array.isArray(level.labs) ? level.labs.length : 0;
+        const options = ['<option value="">Pilih exam...</option>'].concat(
+            data.levels.map((level) => {
+                const selected = level.id === state.activeLevelId ? ' selected' : '';
+                return `<option value="${escapeHtml(level.id)}"${selected}>${escapeHtml(level.title)}</option>`;
+            })
+        );
 
-            return `
-                <button type="button" data-level-id="${escapeHtml(level.id)}" class="level-tab group rounded-2xl border px-5 py-4 text-left transition-all ${isActive ? 'border-purple-400/60 bg-purple-500/15 shadow-lg shadow-purple-900/20' : 'border-white/10 bg-slate-900/60 hover:border-purple-500/40 hover:bg-slate-800/80'}">
-                    <div class="flex items-start justify-between gap-4">
-                        <div>
-                            <div class="text-sm font-bold ${isActive ? 'text-purple-200' : 'text-white'}">${escapeHtml(level.shortTitle || level.title)}</div>
-                            <div class="mt-1 text-xs leading-relaxed text-slate-400">${escapeHtml(level.description || '')}</div>
-                        </div>
-                        <span class="rounded-full border ${isActive ? 'border-purple-300/40 bg-purple-400/20 text-purple-100' : 'border-white/10 bg-white/5 text-slate-400'} px-2.5 py-1 text-[11px] font-bold">${totalLabs} Lab</span>
-                    </div>
-                </button>
-            `;
-        }).join('');
+        examSelect.innerHTML = options.join('');
     }
 
-    function renderLabCards() {
+    function renderLabDropdown() {
+        const labSelect = getElement(selectors.labSelect);
+        const labSelectWrap = getElement(selectors.labSelectWrap);
         const level = getActiveLevel();
-        const container = getElement(selectors.labCards);
-        if (!level || !container) return;
+
+        if (!labSelect) return;
+
+        if (!level) {
+            labSelect.innerHTML = '<option value="">Pilih exam dahulu...</option>';
+            labSelect.disabled = true;
+            if (labSelectWrap) labSelectWrap.classList.add('hidden');
+            return;
+        }
 
         const filteredLabs = getFilteredLabs(level);
 
+        if (labSelectWrap) labSelectWrap.classList.remove('hidden');
+
         if (filteredLabs.length === 0) {
+            labSelect.innerHTML = '<option value="">Tiada lab dijumpai...</option>';
+            labSelect.disabled = true;
+            return;
+        }
+
+        labSelect.disabled = false;
+
+        const options = ['<option value="">Pilih lab...</option>'].concat(
+            filteredLabs.map((lab) => {
+                const selected = lab.id === state.activeLabId ? ' selected' : '';
+                const progress = getLabProgress(lab);
+                return `<option value="${escapeHtml(lab.id)}"${selected}>${escapeHtml(lab.title)} (${progress.percent}%)</option>`;
+            })
+        );
+
+        labSelect.innerHTML = options.join('');
+    }
+
+    function renderGuidedSummary() {
+        const container = getElement(selectors.guidedSummary);
+        if (!container) return;
+
+        const level = getActiveLevel();
+        const lab = getActiveLab();
+
+        if (!level) {
             container.innerHTML = `
-                <div class="rounded-2xl border border-dashed border-white/10 bg-slate-900/40 p-6 text-center">
-                    <div class="text-3xl">🔎</div>
-                    <h3 class="mt-3 text-sm font-bold text-white">Tiada lab dijumpai</h3>
-                    <p class="mt-1 text-xs leading-relaxed text-slate-400">Cuba kosongkan carian atau pilih tahap lain.</p>
+                <div class="rounded-3xl border border-dashed border-white/10 bg-slate-900/40 p-8 text-center">
+                    <div class="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl border border-cyan-300/20 bg-cyan-400/10 text-3xl">🎯</div>
+                    <h2 class="mt-5 text-xl font-black text-white">Pilih exam dahulu</h2>
+                    <p class="mt-2 text-sm leading-relaxed text-slate-400">Selepas memilih exam, dropdown lab akan muncul untuk pilihan set amali.</p>
                 </div>
             `;
             return;
         }
 
-        if (!filteredLabs.some((lab) => lab.id === state.activeLabId)) {
-            state.activeLabId = filteredLabs[0].id;
-        }
-
-        container.innerHTML = filteredLabs.map((lab) => {
-            const isActive = lab.id === state.activeLabId;
-            const progress = getLabProgress(lab);
-
-            return `
-                <button type="button" data-lab-id="${escapeHtml(lab.id)}" class="lab-card group w-full rounded-2xl border p-4 text-left transition-all ${isActive ? 'border-cyan-300/50 bg-cyan-500/10 shadow-lg shadow-cyan-900/20' : 'border-white/10 bg-slate-900/60 hover:border-cyan-400/30 hover:bg-slate-800/80'}">
-                    <div class="flex items-start justify-between gap-3">
-                        <div class="min-w-0">
-                            <div class="text-xs font-bold uppercase tracking-wider ${isActive ? 'text-cyan-200' : 'text-slate-500'}">${escapeHtml(lab.app || 'Lab')}</div>
-                            <h3 class="mt-1 text-sm font-bold leading-snug text-white">${escapeHtml(lab.title || '')}</h3>
-                            <p class="mt-2 text-xs leading-relaxed text-slate-400">${escapeHtml(lab.summary || '')}</p>
-                        </div>
-                        <span class="shrink-0 rounded-full border ${isActive ? 'border-cyan-300/40 bg-cyan-400/15 text-cyan-100' : 'border-white/10 bg-white/5 text-slate-400'} px-2 py-1 text-[11px] font-bold">${progress.percent}%</span>
-                    </div>
-                    <div class="mt-4 h-2 overflow-hidden rounded-full bg-slate-800">
-                        <div class="h-full rounded-full bg-gradient-to-r from-cyan-400 to-purple-400 transition-all" style="width: ${progress.percent}%;"></div>
-                    </div>
-                    <div class="mt-2 text-[11px] text-slate-500">${progress.completed}/${progress.total} langkah selesai</div>
-                </button>
-            `;
-        }).join('');
-    }
-
-    function renderStepList(lab) {
-        if (!lab || !Array.isArray(lab.steps) || lab.steps.length === 0) {
-            return `
-                <div class="rounded-2xl border border-white/10 bg-slate-900/50 p-5 text-sm text-slate-400">
-                    Tiada langkah direkodkan untuk lab ini.
+        if (!lab) {
+            container.innerHTML = `
+                <div class="rounded-3xl border border-dashed border-white/10 bg-slate-900/40 p-8 text-center">
+                    <div class="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl border border-purple-300/20 bg-purple-400/10 text-3xl">📚</div>
+                    <h2 class="mt-5 text-xl font-black text-white">Pilih lab untuk ${escapeHtml(level.shortTitle || level.title)}</h2>
+                    <p class="mt-2 text-sm leading-relaxed text-slate-400">Langkah amali hanya akan dipaparkan selepas lab dipilih.</p>
                 </div>
             `;
+            return;
         }
 
-        return `
-            <div class="space-y-3">
-                ${lab.steps.map((step, index) => {
-                    const checked = isStepComplete(lab.id, index);
-                    const stepNumber = index + 1;
+        const progress = getLabProgress(lab);
+        const commonDone = isCommonComplete();
 
-                    return `
-                        <label class="group flex cursor-pointer gap-4 rounded-2xl border border-white/10 bg-slate-900/55 p-4 transition-all hover:border-purple-400/30 hover:bg-slate-800/80">
-                            <input type="checkbox" data-step-index="${index}" class="step-checkbox mt-1 h-5 w-5 shrink-0 rounded border-slate-600 bg-slate-900 text-purple-500 focus:ring-purple-500" ${checked ? 'checked' : ''}>
-                            <span class="flex-1">
-                                <span class="mb-1 inline-flex rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[11px] font-bold text-slate-400">Langkah ${stepNumber}</span>
-                                <span class="block text-sm leading-relaxed ${checked ? 'text-slate-500 line-through' : 'text-slate-200'}">${escapeHtml(step)}</span>
-                            </span>
-                        </label>
-                    `;
-                }).join('')}
+        container.innerHTML = `
+            <div class="overflow-hidden rounded-3xl border border-white/10 bg-slate-900/60 shadow-2xl shadow-black/20">
+                <div class="bg-gradient-to-br from-slate-900 via-slate-900 to-cyan-950/40 p-6 md:p-8">
+                    <div class="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
+                        <div>
+                            <div class="inline-flex items-center gap-2 rounded-full border border-cyan-300/20 bg-cyan-400/10 px-3 py-1 text-xs font-bold uppercase tracking-wider text-cyan-200">
+                                <span class="h-2 w-2 rounded-full bg-cyan-300"></span>
+                                ${escapeHtml(level.shortTitle || level.title)} · ${escapeHtml(lab.app || 'Google Workspace')}
+                            </div>
+                            <h2 class="mt-4 text-2xl font-black tracking-tight text-white md:text-3xl">${escapeHtml(lab.title || '')}</h2>
+                            <p class="mt-3 max-w-3xl text-sm leading-relaxed text-slate-400">${escapeHtml(lab.summary || '')}</p>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3 md:w-56">
+                            <div class="rounded-2xl border border-white/10 bg-white/5 p-4 text-center">
+                                <div class="text-3xl font-black text-white">${progress.percent}%</div>
+                                <div class="mt-1 text-[11px] font-bold uppercase tracking-wider text-slate-400">Lab</div>
+                            </div>
+                            <div class="rounded-2xl border ${commonDone ? 'border-emerald-300/30 bg-emerald-400/10' : 'border-amber-300/30 bg-amber-400/10'} p-4 text-center">
+                                <div class="text-2xl font-black ${commonDone ? 'text-emerald-200' : 'text-amber-200'}">${commonDone ? '✓' : '!'}</div>
+                                <div class="mt-1 text-[11px] font-bold uppercase tracking-wider ${commonDone ? 'text-emerald-300/80' : 'text-amber-300/80'}">Awal</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-6 h-3 overflow-hidden rounded-full bg-slate-800">
+                        <div class="h-full rounded-full bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 transition-all" style="width: ${progress.percent}%;"></div>
+                    </div>
+                    <div class="mt-3 text-xs text-slate-400">${progress.completed}/${progress.total} langkah khusus lab selesai</div>
+                </div>
             </div>
         `;
     }
 
-    function renderCopyBlocks(lab) {
-        if (!lab || !Array.isArray(lab.copyBlocks) || lab.copyBlocks.length === 0) {
-            return `
-                <div class="rounded-2xl border border-dashed border-white/10 bg-slate-900/40 p-5 text-sm text-slate-400">
-                    Tiada kotak salin untuk lab ini.
-                </div>
-            `;
-        }
+    function renderCopyBlocks(copyBlocks) {
+        if (!Array.isArray(copyBlocks) || copyBlocks.length === 0) return '';
 
         return `
-            <div class="grid grid-cols-1 gap-4">
-                ${lab.copyBlocks.map((block) => `
-                    <div class="copy-card overflow-hidden rounded-2xl border border-white/10 bg-[#0f172a] shadow-lg shadow-black/20">
+            <div class="mt-4 space-y-4">
+                ${copyBlocks.map((block) => `
+                    <div class="overflow-hidden rounded-2xl border border-white/10 bg-[#0f172a] shadow-lg shadow-black/20">
                         <div class="flex items-center justify-between gap-3 border-b border-white/10 bg-slate-900/80 px-4 py-3">
                             <div class="min-w-0">
                                 <div class="truncate text-xs font-bold uppercase tracking-wider text-cyan-300">${escapeHtml(block.label || 'Teks')}</div>
@@ -313,135 +436,306 @@
                                 Salin
                             </button>
                         </div>
-                        <pre class="max-h-60 overflow-auto whitespace-pre-wrap p-4 text-sm leading-7 text-blue-100/90 custom-scrollbar"><code>${escapeHtml(block.text || '')}</code></pre>
+                        <pre class="max-h-64 overflow-auto whitespace-pre-wrap p-4 text-sm leading-7 text-blue-100/90 custom-scrollbar"><code>${escapeHtml(block.text || '')}</code></pre>
                     </div>
                 `).join('')}
             </div>
         `;
     }
 
-    function buildLabPlainText(lab) {
-        if (!lab) return '';
+    function renderInstructionBlock(step, options) {
+        const scope = options && options.scope ? options.scope : 'lab';
+        const lab = getActiveLab();
+        const progressScope = scope === 'common' ? 'common' : lab ? lab.id : 'lab';
+        const complete = isStepComplete(progressScope, step.id);
+        const copyBlocksHtml = renderCopyBlocks(step.copyBlocks);
+        const stepNumber = options && Number.isInteger(options.stepNumber) ? options.stepNumber : null;
+        const totalSteps = options && Number.isInteger(options.totalSteps) ? options.totalSteps : null;
+        const badgeText = stepNumber && totalSteps ? `Langkah ${stepNumber}/${totalSteps}` : 'Langkah';
 
-        const lines = [];
-        lines.push(lab.title || 'Lab');
-        lines.push('');
+        return `
+            <div class="rounded-3xl border ${complete ? 'border-emerald-300/20 bg-emerald-950/20' : 'border-white/10 bg-slate-900/60'} p-5 md:p-6 shadow-xl shadow-black/10">
+                <div class="flex items-start justify-between gap-4">
+                    <div>
+                        <div class="inline-flex rounded-full border ${complete ? 'border-emerald-300/30 bg-emerald-400/10 text-emerald-200' : 'border-white/10 bg-white/5 text-slate-400'} px-3 py-1 text-[11px] font-bold uppercase tracking-wider">${escapeHtml(badgeText)}</div>
+                        <h3 class="mt-3 text-lg font-black text-white">${escapeHtml(step.title || '')}</h3>
+                    </div>
+                    <div class="shrink-0 rounded-full border ${complete ? 'border-emerald-300/30 bg-emerald-400/10 text-emerald-200' : 'border-white/10 bg-white/5 text-slate-500'} px-3 py-1 text-xs font-bold">${complete ? 'Selesai' : 'Aktif'}</div>
+                </div>
 
-        if (lab.summary) {
-            lines.push('Ringkasan:');
-            lines.push(lab.summary);
-            lines.push('');
-        }
-
-        if (Array.isArray(lab.steps) && lab.steps.length > 0) {
-            lines.push('Langkah:');
-            lab.steps.forEach((step, index) => {
-                lines.push(`${index + 1}. ${step}`);
-            });
-            lines.push('');
-        }
-
-        if (Array.isArray(lab.copyBlocks) && lab.copyBlocks.length > 0) {
-            lines.push('Teks untuk disalin:');
-            lab.copyBlocks.forEach((block) => {
-                lines.push(`[${block.label}]`);
-                lines.push(block.text || '');
-                lines.push('');
-            });
-        }
-
-        return lines.join('\n').trim();
+                ${step.before ? `<p class="mt-4 text-sm leading-7 text-slate-300">${escapeHtml(step.before)}</p>` : ''}
+                ${copyBlocksHtml}
+                ${step.after ? `<p class="mt-4 text-sm leading-7 text-slate-300">${escapeHtml(step.after)}</p>` : ''}
+            </div>
+        `;
     }
 
-    function renderLabDetail() {
-        const container = getElement(selectors.labDetail);
+    function renderCommonStartPanel() {
+        const container = getElement(selectors.commonStartPanel);
+        const data = getData();
         const lab = getActiveLab();
+
         if (!container) return;
 
         if (!lab) {
-            container.innerHTML = `
-                <div class="rounded-3xl border border-white/10 bg-slate-900/60 p-8 text-center">
-                    <div class="text-4xl">📘</div>
-                    <h2 class="mt-4 text-xl font-bold text-white">Pilih lab</h2>
-                    <p class="mt-2 text-sm text-slate-400">Sila pilih satu lab di sebelah kiri untuk melihat panduan interaktif.</p>
+            container.innerHTML = '';
+            container.classList.add('hidden');
+            return;
+        }
+
+        container.classList.remove('hidden');
+
+        const commonStart = data && data.commonStart ? data.commonStart : null;
+        const commonSteps = getCommonSteps();
+        const commonDone = isCommonComplete();
+
+        container.innerHTML = `
+            <section class="rounded-3xl border ${commonDone ? 'border-emerald-300/20 bg-emerald-950/20' : 'border-amber-300/20 bg-amber-950/20'} p-5 md:p-6 shadow-xl shadow-black/10">
+                <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                    <div>
+                        <div class="inline-flex items-center gap-2 rounded-full border ${commonDone ? 'border-emerald-300/30 bg-emerald-400/10 text-emerald-200' : 'border-amber-300/30 bg-amber-400/10 text-amber-200'} px-3 py-1 text-xs font-bold uppercase tracking-wider">
+                            <span class="h-2 w-2 rounded-full ${commonDone ? 'bg-emerald-300' : 'bg-amber-300'}"></span>
+                            ${commonDone ? 'Selesai' : 'Wajib sebelum lab'}
+                        </div>
+                        <h2 class="mt-3 text-xl font-black text-white">${escapeHtml(commonStart && commonStart.title ? commonStart.title : 'Persediaan Awal Semua Lab')}</h2>
+                        <p class="mt-2 max-w-3xl text-sm leading-relaxed text-slate-400">${escapeHtml(commonStart && commonStart.description ? commonStart.description : '')}</p>
+                    </div>
+                    <button type="button" id="toggle-common-complete-btn" class="rounded-xl border ${commonDone ? 'border-slate-600 bg-slate-800/80 text-slate-300 hover:bg-slate-700' : 'border-emerald-300/30 bg-emerald-500/15 text-emerald-100 hover:bg-emerald-500/25'} px-4 py-3 text-sm font-bold transition-all active:scale-95">
+                        ${commonDone ? 'Reset Persediaan' : 'Saya sudah selesai persediaan awal'}
+                    </button>
                 </div>
+
+                <div class="mt-5 grid grid-cols-1 gap-3 md:grid-cols-2">
+                    ${commonSteps.map((step, index) => {
+                        const complete = isStepComplete('common', step.id);
+                        return `
+                            <button type="button" data-common-step-id="${escapeHtml(step.id)}" class="common-step-toggle rounded-2xl border ${complete ? 'border-emerald-300/20 bg-emerald-400/10' : 'border-white/10 bg-slate-900/60 hover:bg-slate-800/80'} p-4 text-left transition-all">
+                                <div class="flex items-start gap-3">
+                                    <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${complete ? 'bg-emerald-400/20 text-emerald-200' : 'bg-white/5 text-slate-400'} text-xs font-black">${complete ? '✓' : index + 1}</span>
+                                    <span>
+                                        <span class="block text-sm font-bold text-white">${escapeHtml(step.title || '')}</span>
+                                        <span class="mt-1 block text-xs leading-relaxed ${complete ? 'text-emerald-200/70' : 'text-slate-400'}">${escapeHtml(step.before || '')}${step.after ? ' ' + escapeHtml(step.after) : ''}</span>
+                                    </span>
+                                </div>
+                            </button>
+                        `;
+                    }).join('')}
+                </div>
+            </section>
+        `;
+    }
+
+    function renderLabProgressPanel() {
+        const container = getElement(selectors.labProgressPanel);
+        const lab = getActiveLab();
+
+        if (!container) return;
+
+        if (!lab) {
+            container.innerHTML = '';
+            container.classList.add('hidden');
+            return;
+        }
+
+        container.classList.remove('hidden');
+
+        const steps = getLabSteps(lab);
+        const progress = getLabProgress(lab);
+
+        container.innerHTML = `
+            <section class="rounded-3xl border border-white/10 bg-slate-900/60 p-5 md:p-6 shadow-xl shadow-black/10">
+                <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                    <div>
+                        <h2 class="text-lg font-black text-white">Progress Lab</h2>
+                        <p class="mt-1 text-sm text-slate-400">Klik “Selesai & Seterusnya” untuk sembunyikan langkah semasa dan paparkan langkah berikutnya.</p>
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                        <button type="button" id="jump-first-incomplete-btn" class="rounded-xl border border-cyan-300/30 bg-cyan-400/10 px-4 py-2 text-sm font-bold text-cyan-100 transition-all hover:bg-cyan-400/20 active:scale-95">
+                            Pergi ke belum selesai
+                        </button>
+                        <button type="button" id="toggle-all-steps-btn" class="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-bold text-slate-300 transition-all hover:bg-white/10 active:scale-95">
+                            ${state.showAllSteps ? 'Sembunyi Semua Langkah' : 'Lihat Semua Langkah'}
+                        </button>
+                        <button type="button" id="reset-lab-progress-btn" class="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-bold text-slate-300 transition-all hover:bg-white/10 active:scale-95">
+                            Reset Lab
+                        </button>
+                    </div>
+                </div>
+
+                <div class="mt-5 h-3 overflow-hidden rounded-full bg-slate-800">
+                    <div class="h-full rounded-full bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 transition-all" style="width: ${progress.percent}%;"></div>
+                </div>
+
+                <div class="mt-3 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-400">
+                    <span>${progress.completed}/${progress.total} langkah selesai</span>
+                    <span>Langkah aktif: ${steps.length > 0 ? state.activeStepIndex + 1 : 0}/${steps.length}</span>
+                </div>
+            </section>
+        `;
+    }
+
+    function renderGuidedStepPanel() {
+        const container = getElement(selectors.guidedStepPanel);
+        const lab = getActiveLab();
+
+        if (!container) return;
+
+        if (!lab) {
+            container.innerHTML = '';
+            container.classList.add('hidden');
+            return;
+        }
+
+        container.classList.remove('hidden');
+
+        const steps = getLabSteps(lab);
+        clampActiveStepIndex();
+
+        if (steps.length === 0) {
+            container.innerHTML = `
+                <section class="rounded-3xl border border-dashed border-white/10 bg-slate-900/40 p-8 text-center">
+                    <div class="text-3xl">📭</div>
+                    <h2 class="mt-4 text-lg font-bold text-white">Tiada langkah lab direkodkan</h2>
+                    <p class="mt-2 text-sm text-slate-400">Sila semak data amali untuk lab ini.</p>
+                </section>
             `;
             return;
         }
 
-        const progress = getLabProgress(lab);
+        const step = steps[state.activeStepIndex];
+        const isFirst = state.activeStepIndex === 0;
+        const isLast = state.activeStepIndex === steps.length - 1;
+        const complete = isStepComplete(lab.id, step.id);
 
         container.innerHTML = `
-            <article class="overflow-hidden rounded-3xl border border-white/10 bg-slate-900/60 shadow-2xl shadow-black/30">
-                <div class="border-b border-white/10 bg-gradient-to-br from-slate-900 via-slate-900 to-purple-950/40 p-6 md:p-8">
-                    <div class="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
-                        <div>
-                            <div class="inline-flex items-center gap-2 rounded-full border border-cyan-300/20 bg-cyan-400/10 px-3 py-1 text-xs font-bold uppercase tracking-wider text-cyan-200">
-                                <span class="h-2 w-2 rounded-full bg-cyan-300"></span>
-                                ${escapeHtml(lab.app || 'Google Workspace')}
-                            </div>
-                            <h2 class="mt-4 text-2xl font-black tracking-tight text-white md:text-3xl">${escapeHtml(lab.title || '')}</h2>
-                            <p class="mt-3 max-w-3xl text-sm leading-relaxed text-slate-400">${escapeHtml(lab.summary || '')}</p>
-                        </div>
-                        <div class="shrink-0 rounded-2xl border border-white/10 bg-white/5 p-4 text-center">
-                            <div class="text-3xl font-black text-white">${progress.percent}%</div>
-                            <div class="mt-1 text-[11px] font-bold uppercase tracking-wider text-slate-400">Progress</div>
-                        </div>
-                    </div>
-                    <div class="mt-6 h-3 overflow-hidden rounded-full bg-slate-800">
-                        <div class="h-full rounded-full bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 transition-all" style="width: ${progress.percent}%;"></div>
-                    </div>
-                    <div class="mt-3 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-400">
-                        <span>${progress.completed}/${progress.total} langkah selesai</span>
-                        <div class="flex flex-wrap gap-2">
-                            <button type="button" id="copy-lab-btn" class="rounded-lg border border-cyan-300/30 bg-cyan-400/10 px-3 py-2 font-bold text-cyan-100 transition-all hover:bg-cyan-400/20 active:scale-95">
-                                Salin Semua Lab
-                            </button>
-                            <button type="button" id="reset-lab-progress-btn" class="rounded-lg border border-white/10 bg-white/5 px-3 py-2 font-bold text-slate-300 transition-all hover:bg-white/10 active:scale-95">
-                                Reset Checklist
-                            </button>
-                        </div>
-                    </div>
-                </div>
+            <section class="space-y-4">
+                ${renderInstructionBlock(step, {
+                    scope: 'lab',
+                    stepNumber: state.activeStepIndex + 1,
+                    totalSteps: steps.length
+                })}
 
-                <div class="grid grid-cols-1 gap-6 p-6 md:p-8 xl:grid-cols-12">
-                    <section class="xl:col-span-7">
-                        <div class="mb-4 flex items-center justify-between gap-4">
-                            <div>
-                                <h3 class="text-lg font-bold text-white">Langkah Amali</h3>
-                                <p class="mt-1 text-xs text-slate-500">Tanda setiap langkah selepas selesai.</p>
-                            </div>
-                        </div>
-                        ${renderStepList(lab)}
-                    </section>
+                <div class="flex flex-col gap-3 rounded-3xl border border-white/10 bg-slate-900/60 p-4 shadow-xl shadow-black/10 sm:flex-row sm:items-center sm:justify-between">
+                    <button type="button" id="previous-step-btn" class="rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-bold text-slate-300 transition-all hover:bg-white/10 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40" ${isFirst ? 'disabled' : ''}>
+                        Sebelumnya
+                    </button>
 
-                    <aside class="xl:col-span-5">
-                        <div class="mb-4">
-                            <h3 class="text-lg font-bold text-white">Kotak Salin Cepat</h3>
-                            <p class="mt-1 text-xs text-slate-500">Klik Salin untuk tampal terus dalam aplikasi Google.</p>
-                        </div>
-                        ${renderCopyBlocks(lab)}
-                    </aside>
+                    <div class="text-center text-xs text-slate-500">
+                        ${complete ? 'Langkah ini telah ditanda selesai.' : 'Klik selesai untuk paparkan langkah seterusnya.'}
+                    </div>
+
+                    <button type="button" id="complete-next-step-btn" class="rounded-xl border ${isLast ? 'border-emerald-300/30 bg-emerald-500/15 text-emerald-100 hover:bg-emerald-500/25' : 'border-purple-300/30 bg-purple-500/15 text-purple-100 hover:bg-purple-500/25'} px-4 py-3 text-sm font-bold transition-all active:scale-95">
+                        ${isLast ? 'Tandakan Selesai' : 'Selesai & Seterusnya'}
+                    </button>
                 </div>
-            </article>
+            </section>
         `;
     }
 
-    function renderAll() {
+    function renderAllStepsPanel() {
+        const container = getElement(selectors.allStepsPanel);
+        const lab = getActiveLab();
+
+        if (!container) return;
+
+        if (!lab || !state.showAllSteps) {
+            container.innerHTML = '';
+            container.classList.add('hidden');
+            return;
+        }
+
+        container.classList.remove('hidden');
+
+        const steps = getLabSteps(lab);
+
+        container.innerHTML = `
+            <section class="rounded-3xl border border-white/10 bg-slate-900/60 p-5 md:p-6 shadow-xl shadow-black/10">
+                <div class="mb-5 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+                    <div>
+                        <h2 class="text-lg font-black text-white">Semua Langkah</h2>
+                        <p class="mt-1 text-sm text-slate-400">Paparan semakan penuh. Klik mana-mana langkah untuk jadikannya langkah aktif.</p>
+                    </div>
+                    <div class="text-xs text-slate-500">${steps.length} langkah khusus lab</div>
+                </div>
+
+                <div class="space-y-4">
+                    ${steps.map((step, index) => `
+                        <button type="button" data-jump-step-index="${index}" class="jump-step-btn block w-full text-left transition-all hover:scale-[1.005] active:scale-[0.995]">
+                            ${renderInstructionBlock(step, {
+                                scope: 'lab',
+                                stepNumber: index + 1,
+                                totalSteps: steps.length
+                            })}
+                        </button>
+                    `).join('')}
+                </div>
+            </section>
+        `;
+    }
+
+    function ensureModernContainers() {
+        const legacyDetail = getElement(selectors.legacyLabDetail);
+        if (!legacyDetail) return;
+
+        if (getElement(selectors.examSelect) && getElement(selectors.labSelect)) return;
+
+        const levelTabs = getElement(selectors.legacyLevelTabs);
+        const labCards = getElement(selectors.legacyLabCards);
+
+        if (levelTabs) {
+            levelTabs.innerHTML = `
+                <div id="exam-select-wrap" class="space-y-3">
+                    <label for="exam-select" class="block text-xs font-bold uppercase tracking-wider text-slate-500">Pilih Exam</label>
+                    <select id="exam-select" class="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-white outline-none transition-all focus:border-cyan-300/50 focus:ring-4 focus:ring-cyan-400/10">
+                        <option value="">Pilih exam...</option>
+                    </select>
+                </div>
+            `;
+        }
+
+        if (labCards) {
+            labCards.innerHTML = `
+                <div id="lab-select-wrap" class="hidden space-y-3">
+                    <label for="lab-select" class="block text-xs font-bold uppercase tracking-wider text-slate-500">Pilih Lab</label>
+                    <select id="lab-select" class="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-white outline-none transition-all focus:border-purple-300/50 focus:ring-4 focus:ring-purple-400/10" disabled>
+                        <option value="">Pilih exam dahulu...</option>
+                    </select>
+                </div>
+            `;
+        }
+
+        legacyDetail.innerHTML = `
+            <div id="guided-shell" class="space-y-6">
+                <div id="guided-summary"></div>
+                <div id="common-start-panel" class="hidden"></div>
+                <div id="lab-progress-panel" class="hidden"></div>
+                <div id="guided-step-panel" class="hidden"></div>
+                <div id="all-steps-panel" class="hidden"></div>
+            </div>
+        `;
+    }
+
+    function renderModernView() {
         const data = getData();
+
         if (!data) {
             renderMissingDataError();
             return;
         }
 
         renderMeta(data);
-        renderLevelTabs();
-        renderLabCards();
-        renderLabDetail();
+        renderExamDropdown();
+        renderLabDropdown();
+        renderGuidedSummary();
+        renderCommonStartPanel();
+        renderLabProgressPanel();
+        renderGuidedStepPanel();
+        renderAllStepsPanel();
+        saveSession();
     }
 
     function renderMissingDataError() {
-        const detail = getElement(selectors.labDetail);
+        const detail = getElement(selectors.guidedSummary) || getElement(selectors.legacyLabDetail);
         if (!detail) return;
 
         detail.innerHTML = `
@@ -451,14 +745,6 @@
                 <p class="mt-2 text-sm leading-relaxed text-red-200/80">Pastikan fail amali-gce-data.js dimuatkan sebelum amali-gce.js.</p>
             </div>
         `;
-    }
-
-    function findCopyBlock(copyId) {
-        const labRecord = getLabById(state.activeLabId);
-        const lab = labRecord ? labRecord.lab : null;
-        if (!lab || !Array.isArray(lab.copyBlocks)) return null;
-
-        return lab.copyBlocks.find((block) => block.id === copyId) || null;
     }
 
     function showToast(message, type) {
@@ -513,9 +799,9 @@
 
     function handleCopyButton(button) {
         const copyId = button.getAttribute('data-copy-id');
-        const block = findCopyBlock(copyId);
+        const record = getStepByCopyId(copyId);
 
-        if (!block) {
+        if (!record || !record.block) {
             showToast('Teks tidak dijumpai.', 'error');
             return;
         }
@@ -524,7 +810,7 @@
         button.textContent = 'Menyalin...';
         button.disabled = true;
 
-        copyText(block.text || '')
+        copyText(record.block.text || '')
             .then(() => {
                 button.textContent = 'Disalin!';
                 showToast('Teks berjaya disalin.', 'success');
@@ -542,141 +828,237 @@
             });
     }
 
-    function handleCopyLab() {
+    function markCurrentStepCompleteAndAdvance() {
         const lab = getActiveLab();
         if (!lab) return;
 
-        copyText(buildLabPlainText(lab))
-            .then(() => {
-                showToast('Semua kandungan lab berjaya disalin.', 'success');
-            })
-            .catch((error) => {
-                console.error('Gagal menyalin kandungan lab:', error);
-                showToast('Gagal menyalin semua kandungan lab.', 'error');
-            });
+        const steps = getLabSteps(lab);
+        if (steps.length === 0) return;
+
+        clampActiveStepIndex();
+
+        const currentStep = steps[state.activeStepIndex];
+        setStepComplete(lab.id, currentStep.id, true);
+
+        if (state.activeStepIndex < steps.length - 1) {
+            state.activeStepIndex += 1;
+            showToast('Langkah selesai. Langkah seterusnya dipaparkan.', 'success');
+        } else {
+            showToast('Langkah terakhir ditanda selesai.', 'success');
+        }
+
+        renderModernView();
     }
 
-    function handleResetLabProgress() {
-        const lab = getActiveLab();
-        if (!lab || !Array.isArray(lab.steps)) return;
+    function goToPreviousStep() {
+        if (state.activeStepIndex > 0) {
+            state.activeStepIndex -= 1;
+            renderModernView();
+        }
+    }
 
-        lab.steps.forEach((_step, index) => {
-            delete state.progress[getStepKey(lab.id, index)];
+    function jumpToFirstIncomplete() {
+        const lab = getActiveLab();
+        if (!lab) return;
+
+        state.activeStepIndex = findFirstIncompleteStepIndex(lab);
+        renderModernView();
+    }
+
+    function resetLabProgress() {
+        const lab = getActiveLab();
+        if (!lab) return;
+
+        getLabSteps(lab).forEach((step) => {
+            delete state.progress[getProgressKey(lab.id, step.id)];
         });
 
+        state.activeStepIndex = 0;
         saveProgress();
-        renderLabCards();
-        renderLabDetail();
-        showToast('Checklist lab telah direset.', 'success');
+        showToast('Progress lab telah direset.', 'success');
+        renderModernView();
     }
 
-    function bindStaticEvents() {
-        const levelTabs = getElement(selectors.levelTabs);
-        const labCards = getElement(selectors.labCards);
-        const labDetail = getElement(selectors.labDetail);
-        const searchInput = getElement(selectors.searchInput);
-        const clearSearchBtn = getElement(selectors.clearSearchBtn);
+    function handleExamChange(value) {
+        const level = getLevelById(value);
 
-        if (levelTabs) {
-            levelTabs.addEventListener('click', (event) => {
-                const button = event.target.closest('[data-level-id]');
-                if (!button) return;
+        state.activeLevelId = level ? level.id : '';
+        state.activeLabId = '';
+        state.activeStepIndex = 0;
+        state.showAllSteps = false;
 
-                const nextLevelId = button.getAttribute('data-level-id');
-                const nextLevel = getLevelById(nextLevelId);
-                if (!nextLevel) return;
+        renderModernView();
+    }
 
-                state.activeLevelId = nextLevel.id;
-                state.activeLabId = nextLevel.labs.length > 0 ? nextLevel.labs[0].id : '';
-                renderAll();
-            });
+    function handleLabChange(value) {
+        const labRecord = getLabById(value);
+
+        if (!labRecord) {
+            state.activeLabId = '';
+            state.activeStepIndex = 0;
+            state.showAllSteps = false;
+            renderModernView();
+            return;
         }
 
-        if (labCards) {
-            labCards.addEventListener('click', (event) => {
-                const button = event.target.closest('[data-lab-id]');
-                if (!button) return;
+        state.activeLevelId = labRecord.level.id;
+        state.activeLabId = labRecord.lab.id;
+        state.activeStepIndex = findFirstIncompleteStepIndex(labRecord.lab);
+        state.showAllSteps = false;
 
-                const nextLabId = button.getAttribute('data-lab-id');
-                const labRecord = getLabById(nextLabId);
-                if (!labRecord) return;
+        renderModernView();
+    }
 
-                state.activeLevelId = labRecord.level.id;
-                state.activeLabId = labRecord.lab.id;
-                renderAll();
-            });
+    function handleSearchChange(value) {
+        state.searchQuery = value;
+
+        const activeLevel = getActiveLevel();
+        if (activeLevel && state.activeLabId) {
+            const filteredLabs = getFilteredLabs(activeLevel);
+            const currentLabStillVisible = filteredLabs.some((lab) => lab.id === state.activeLabId);
+
+            if (!currentLabStillVisible) {
+                state.activeLabId = '';
+                state.activeStepIndex = 0;
+                state.showAllSteps = false;
+            }
         }
 
-        if (labDetail) {
-            labDetail.addEventListener('click', (event) => {
-                const copyButton = event.target.closest('[data-copy-id]');
-                if (copyButton) {
-                    handleCopyButton(copyButton);
-                    return;
-                }
+        renderModernView();
+    }
 
-                const copyLabButton = event.target.closest('#copy-lab-btn');
-                if (copyLabButton) {
-                    handleCopyLab();
-                    return;
-                }
+    function bindEvents() {
+        document.addEventListener('change', (event) => {
+            const examSelect = event.target.closest(`#${selectors.examSelect}`);
+            if (examSelect) {
+                handleExamChange(examSelect.value);
+                return;
+            }
 
-                const resetButton = event.target.closest('#reset-lab-progress-btn');
-                if (resetButton) {
-                    handleResetLabProgress();
-                }
-            });
+            const labSelect = event.target.closest(`#${selectors.labSelect}`);
+            if (labSelect) {
+                handleLabChange(labSelect.value);
+            }
+        });
 
-            labDetail.addEventListener('change', (event) => {
-                const checkbox = event.target.closest('.step-checkbox');
-                if (!checkbox) return;
+        document.addEventListener('input', (event) => {
+            const searchInput = event.target.closest(`#${selectors.searchInput}`);
+            if (!searchInput) return;
 
-                const lab = getActiveLab();
-                if (!lab) return;
+            handleSearchChange(searchInput.value);
+        });
 
-                const stepIndex = Number(checkbox.getAttribute('data-step-index'));
-                if (!Number.isInteger(stepIndex)) return;
+        document.addEventListener('click', (event) => {
+            const copyButton = event.target.closest('[data-copy-id]');
+            if (copyButton) {
+                event.preventDefault();
+                event.stopPropagation();
+                handleCopyButton(copyButton);
+                return;
+            }
 
-                setStepComplete(lab.id, stepIndex, checkbox.checked);
-                renderLabCards();
-                renderLabDetail();
-            });
-        }
-
-        if (searchInput) {
-            searchInput.addEventListener('input', (event) => {
-                state.searchQuery = event.target.value;
-                renderLabCards();
-                renderLabDetail();
-            });
-        }
-
-        if (clearSearchBtn) {
-            clearSearchBtn.addEventListener('click', () => {
+            const clearSearchBtn = event.target.closest(`#${selectors.clearSearchBtn}`);
+            if (clearSearchBtn) {
+                const searchInput = getElement(selectors.searchInput);
                 state.searchQuery = '';
+
                 if (searchInput) {
                     searchInput.value = '';
                     searchInput.focus();
                 }
-                renderLabCards();
-                renderLabDetail();
-            });
-        }
+
+                renderModernView();
+                return;
+            }
+
+            const toggleCommonBtn = event.target.closest('#toggle-common-complete-btn');
+            if (toggleCommonBtn) {
+                setCommonComplete(!isCommonComplete());
+                showToast(isCommonComplete() ? 'Persediaan awal ditanda selesai.' : 'Persediaan awal direset.', 'success');
+                renderModernView();
+                return;
+            }
+
+            const commonStepToggle = event.target.closest('[data-common-step-id]');
+            if (commonStepToggle) {
+                const stepId = commonStepToggle.getAttribute('data-common-step-id');
+                setStepComplete('common', stepId, !isStepComplete('common', stepId));
+                renderModernView();
+                return;
+            }
+
+            const previousStepBtn = event.target.closest('#previous-step-btn');
+            if (previousStepBtn) {
+                goToPreviousStep();
+                return;
+            }
+
+            const completeNextBtn = event.target.closest('#complete-next-step-btn');
+            if (completeNextBtn) {
+                markCurrentStepCompleteAndAdvance();
+                return;
+            }
+
+            const jumpFirstIncompleteBtn = event.target.closest('#jump-first-incomplete-btn');
+            if (jumpFirstIncompleteBtn) {
+                jumpToFirstIncomplete();
+                return;
+            }
+
+            const toggleAllStepsBtn = event.target.closest('#toggle-all-steps-btn');
+            if (toggleAllStepsBtn) {
+                state.showAllSteps = !state.showAllSteps;
+                renderModernView();
+                return;
+            }
+
+            const resetLabBtn = event.target.closest('#reset-lab-progress-btn');
+            if (resetLabBtn) {
+                resetLabProgress();
+                return;
+            }
+
+            const jumpStepBtn = event.target.closest('[data-jump-step-index]');
+            if (jumpStepBtn) {
+                const index = Number(jumpStepBtn.getAttribute('data-jump-step-index'));
+                if (Number.isInteger(index)) {
+                    state.activeStepIndex = index;
+                    state.showAllSteps = false;
+                    renderModernView();
+                }
+            }
+        });
     }
 
-    function init() {
-        const data = getData();
+    function validateRestoredSelection() {
+        const level = getLevelById(state.activeLevelId);
 
-        loadProgress();
-
-        if (!data) {
-            renderMissingDataError();
+        if (!level) {
+            state.activeLevelId = '';
+            state.activeLabId = '';
+            state.activeStepIndex = 0;
+            state.showAllSteps = false;
             return;
         }
 
-        initializeState(data);
-        bindStaticEvents();
-        renderAll();
+        if (state.activeLabId) {
+            const labRecord = getLabById(state.activeLabId);
+            if (!labRecord || labRecord.level.id !== level.id) {
+                state.activeLabId = '';
+                state.activeStepIndex = 0;
+                state.showAllSteps = false;
+            }
+        }
+
+        clampActiveStepIndex();
+    }
+
+    function init() {
+        loadState();
+        ensureModernContainers();
+        validateRestoredSelection();
+        bindEvents();
+        renderModernView();
     }
 
     if (document.readyState === 'loading') {
