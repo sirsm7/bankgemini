@@ -831,6 +831,82 @@
         `;
     }
 
+    // ── SURGICAL EDIT START: BINA MODAL GUEST ──
+    function renderGuestProfileModal() {
+        const existingModal = getElement('guest-profile-modal');
+        if (existingModal) existingModal.remove();
+
+        const modalHtml = `
+            <div id="guest-profile-modal" class="fixed inset-0 z-[150] flex items-center justify-center p-4">
+                <div class="absolute inset-0 bg-slate-950/80 backdrop-blur-sm modal-backdrop"></div>
+                
+                <div class="relative w-full max-w-lg rounded-3xl border border-white/10 bg-slate-900 shadow-2xl shadow-black/50 overflow-hidden animate-[fadeIn_0.3s_ease-out]">
+                    <div class="p-6 md:p-8">
+                        <div class="flex items-center gap-4 mb-6">
+                            <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-cyan-300/20 bg-cyan-400/10 text-cyan-200 text-2xl">
+                                👤
+                            </div>
+                            <div>
+                                <h3 class="text-xl font-black text-white">Buka Guest Profile</h3>
+                                <p class="text-sm font-medium text-slate-400 mt-1">Langkah wajib untuk pengguna DELIMa.</p>
+                            </div>
+                        </div>
+
+                        <div class="space-y-4 mb-8">
+                            <div class="rounded-2xl border border-amber-300/20 bg-amber-500/10 p-4">
+                                <p class="text-sm leading-relaxed text-amber-200/90 font-medium">
+                                    <span class="font-bold text-amber-400">Penting:</span> 
+                                    Akaun rasmi DELIMa menghalang penggunaan tab Incognito. Sila gunakan <strong>Guest Profile</strong> Chrome untuk mengelakkan pertembungan sesi semasa login amali.
+                                </p>
+                            </div>
+
+                            <div class="space-y-3 mt-4">
+                                <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Cara Membuka:</h4>
+                                <div class="flex items-start gap-3">
+                                    <div class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-800 border border-slate-700 text-xs font-bold text-slate-300">1</div>
+                                    <p class="text-sm text-slate-300">Klik profil Chrome di penjuru atas kanan pelayar.</p>
+                                </div>
+                                <div class="flex items-start gap-3">
+                                    <div class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-800 border border-slate-700 text-xs font-bold text-slate-300">2</div>
+                                    <p class="text-sm text-slate-300">Klik pada <span class="font-bold text-white">Guest</span> atau <span class="font-bold text-white">Tetamu</span>.</p>
+                                </div>
+                                <div class="flex items-start gap-3">
+                                    <div class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-800 border border-slate-700 text-xs font-bold text-slate-300">3</div>
+                                    <p class="text-sm text-slate-300">Selesaikan login di tetingkap Guest yang baharu.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button type="button" id="close-guest-modal-btn" class="w-full rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white px-4 py-3.5 text-sm font-bold transition-all active:scale-95 shadow-lg shadow-cyan-900/50">
+                            Saya Faham & Teruskan
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+        const closeBtn = getElement('close-guest-modal-btn');
+        const backdrop = document.querySelector('.modal-backdrop');
+
+        const closeModal = () => {
+            const modal = getElement('guest-profile-modal');
+            if (modal) modal.remove();
+            
+            const firstStep = getCommonSteps()[0];
+            if (firstStep) {
+                setCommonStepComplete(firstStep.id, true);
+            }
+            showToast('Langkah membuka Guest Profile telah disahkan.', 'success');
+            renderModernView();
+        };
+
+        if (closeBtn) closeBtn.addEventListener('click', closeModal);
+        if (backdrop) backdrop.addEventListener('click', closeModal);
+    }
+    // ── SURGICAL EDIT END ──
+
     function showToast(message, type) {
         const toast = getElement(selectors.toast);
         if (!toast) return;
@@ -1075,12 +1151,9 @@
 
             const openGuestProfileBtn = event.target.closest('#open-guest-profile-btn');
             if (openGuestProfileBtn) {
-                const firstStep = getCommonSteps()[0];
-                if (firstStep) {
-                    setCommonStepComplete(firstStep.id, true);
-                }
-                showToast('Sila buka Guest Profile secara manual di Chrome, kemudian teruskan langkah persediaan awal.', 'success');
-                renderModernView();
+                // ── SURGICAL EDIT START: Panggil modal ganti toast notification ──
+                renderGuestProfileModal();
+                // ── SURGICAL EDIT END ──
                 return;
             }
 
