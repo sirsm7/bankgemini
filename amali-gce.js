@@ -201,10 +201,23 @@
         syncPrepConfirmationFromCommonSteps();
     }
 
+    // ── SURGICAL EDIT START: Auto-complete Persediaan Awal jika Lab 100% selesai ──
     function resetCommonForActiveLab() {
         state.commonStepProgress = {};
         state.prepConfirmedLabId = '';
+
+        const lab = getActiveLab();
+        if (lab) {
+            const progress = getLabProgress(lab);
+            if (progress.total > 0 && progress.completed === progress.total) {
+                getCommonSteps().forEach((step) => {
+                    state.commonStepProgress[getCommonProgressKey(step.id)] = true;
+                });
+                state.prepConfirmedLabId = lab.id;
+            }
+        }
     }
+    // ── SURGICAL EDIT END ──
 
     function isCommonComplete() {
         const lab = getActiveLab();
@@ -333,10 +346,9 @@
             return;
         }
 
-        if (!isCommonComplete() && state.activeStepIndex > 0) {
-            state.activeStepIndex = 0;
-            return;
-        }
+        // ── SURGICAL EDIT START: Benarkan pengekalan step index, sekat di tahap UI ──
+        // (Logik reset ke 0 dibuang supaya session restore berjaya)
+        // ── SURGICAL EDIT END ──
 
         if (state.activeStepIndex < 0) {
             state.activeStepIndex = 0;
@@ -683,7 +695,10 @@
         const isFirst = state.activeStepIndex === 0;
         const isLast = state.activeStepIndex === steps.length - 1;
         const complete = isStepComplete(lab.id, step.id);
-        const prepRequired = isFirst && !isCommonComplete();
+        
+        // ── SURGICAL EDIT START: Sekatan butang jika persediaan belum selesai ──
+        const prepRequired = !isCommonComplete();
+        // ── SURGICAL EDIT END ──
 
         container.innerHTML = `
             <section class="space-y-4">
@@ -695,7 +710,7 @@
 
                 ${prepRequired ? `
                     <div class="rounded-2xl border border-amber-300/20 bg-amber-950/30 p-4 text-sm leading-relaxed text-amber-100">
-                        Sahkan Persediaan Awal Semua Lab dahulu sebelum meneruskan Langkah 1.
+                        Sahkan Persediaan Awal Semua Lab dahulu sebelum meneruskan ${isFirst ? 'Langkah 1' : 'langkah ini'}.
                     </div>
                 ` : ''}
 
@@ -831,7 +846,6 @@
         `;
     }
 
-    // ── SURGICAL EDIT START: BINA MODAL GUEST ──
     function renderGuestProfileModal() {
         const existingModal = getElement('guest-profile-modal');
         if (existingModal) existingModal.remove();
@@ -905,7 +919,6 @@
         if (closeBtn) closeBtn.addEventListener('click', closeModal);
         if (backdrop) backdrop.addEventListener('click', closeModal);
     }
-    // ── SURGICAL EDIT END ──
 
     function showToast(message, type) {
         const toast = getElement(selectors.toast);
@@ -997,11 +1010,13 @@
 
         clampActiveStepIndex();
 
-        if (state.activeStepIndex === 0 && !isCommonComplete()) {
-            showToast('Sahkan Persediaan Awal Semua Lab dahulu sebelum meneruskan Langkah 1.', 'error');
+        // ── SURGICAL EDIT START: Sekatan butang "Selesai" untuk semua langkah jika persediaan belum disahkan ──
+        if (!isCommonComplete()) {
+            showToast('Sahkan Persediaan Awal Semua Lab dahulu sebelum meneruskan.', 'error');
             renderModernView();
             return;
         }
+        // ── SURGICAL EDIT END ──
 
         const currentStep = steps[state.activeStepIndex];
         setStepComplete(lab.id, currentStep.id, true);
@@ -1047,7 +1062,11 @@
         });
 
         state.activeStepIndex = 0;
-        resetCommonForActiveLab();
+        
+        // Reset state common back to false so it requires re-confirmation
+        state.commonStepProgress = {};
+        state.prepConfirmedLabId = '';
+
         saveProgress();
         showToast('Progress lab dan persediaan awal telah direset.', 'success');
         renderModernView();
@@ -1060,7 +1079,9 @@
         state.activeLabId = '';
         state.activeStepIndex = 0;
         state.showAllSteps = false;
-        resetCommonForActiveLab();
+        
+        state.commonStepProgress = {};
+        state.prepConfirmedLabId = '';
 
         renderModernView();
     }
@@ -1072,7 +1093,10 @@
             state.activeLabId = '';
             state.activeStepIndex = 0;
             state.showAllSteps = false;
-            resetCommonForActiveLab();
+            
+            state.commonStepProgress = {};
+            state.prepConfirmedLabId = '';
+            
             renderModernView();
             return;
         }
@@ -1081,6 +1105,7 @@
         state.activeLabId = labRecord.lab.id;
         state.activeStepIndex = 0;
         state.showAllSteps = false;
+        
         resetCommonForActiveLab();
 
         renderModernView();
@@ -1098,7 +1123,9 @@
                 state.activeLabId = '';
                 state.activeStepIndex = 0;
                 state.showAllSteps = false;
-                resetCommonForActiveLab();
+                
+                state.commonStepProgress = {};
+                state.prepConfirmedLabId = '';
             }
         }
 
@@ -1151,9 +1178,7 @@
 
             const openGuestProfileBtn = event.target.closest('#open-guest-profile-btn');
             if (openGuestProfileBtn) {
-                // ── SURGICAL EDIT START: Panggil modal ganti toast notification ──
                 renderGuestProfileModal();
-                // ── SURGICAL EDIT END ──
                 return;
             }
 
@@ -1209,14 +1234,10 @@
             if (jumpStepBtn) {
                 const index = Number(jumpStepBtn.getAttribute('data-jump-step-index'));
                 if (Number.isInteger(index)) {
-                    if (!isCommonComplete() && index > 0) {
-                        state.activeStepIndex = 0;
-                        state.showAllSteps = false;
-                        showToast('Sahkan Persediaan Awal Semua Lab dahulu sebelum lompat ke langkah lain.', 'error');
-                    } else {
-                        state.activeStepIndex = index;
-                        state.showAllSteps = false;
-                    }
+                    // ── SURGICAL EDIT START: Benarkan lompatan langkah, tapi kekal disekat di dalam panel ──
+                    state.activeStepIndex = index;
+                    state.showAllSteps = false;
+                    // ── SURGICAL EDIT END ──
                     renderModernView();
                 }
             }
@@ -1245,10 +1266,12 @@
             }
         }
 
+        // ── SURGICAL EDIT START: Baiki Logik Pemulihan Sesi (Jangan reset activeStepIndex) ──
         if (state.activeLabId) {
             resetCommonForActiveLab();
-            state.activeStepIndex = 0;
+            // activeStepIndex dipelihara (tidak di-reset ke 0) untuk fungsi session restore
         }
+        // ── SURGICAL EDIT END ──
 
         clampActiveStepIndex();
     }
