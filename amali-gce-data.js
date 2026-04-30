@@ -486,6 +486,15 @@ window.AMALI_GCE_DATA = {
                             title: "Jana pautan Meet",
                             before: "Pada paparan Stream, klik butang Generate link pada kotak Meet.",
                             copyBlocks: [],
+                            imageBlocks: [
+                                {
+                                    id: "l2-lab1-step-3-generate-meet-link-image",
+                                    label: "Rujukan Jana Pautan Meet",
+                                    alt: "Imej rujukan langkah jana pautan Meet dalam Google Classroom.",
+                                    src: "https://drive.google.com/thumbnail?id=1RJfmCPxuhrxi9qXYj8CR6Wa68GBT9xLj&sz=w1600",
+                                    caption: "Klik imej untuk besarkan paparan tanpa membuka tab baharu."
+                                }
+                            ],
                             after: "Pada paparan yang keluar klik butang Save. Klik 3 titik sebelah perkataan Meet dan klik Copy link."
                         },
                         {
@@ -493,6 +502,15 @@ window.AMALI_GCE_DATA = {
                             title: "Tambah pautan Meet dalam announcement",
                             before: "Tekan pada New announcement, cari dan klik butang Add link.",
                             copyBlocks: [],
+                            imageBlocks: [
+                                {
+                                    id: "l2-lab1-step-4-add-meet-link-image",
+                                    label: "Rujukan Tambah Pautan Meet",
+                                    alt: "Imej rujukan langkah tambah pautan Meet dalam announcement Google Classroom.",
+                                    src: "https://drive.google.com/thumbnail?id=12Wd7gWCZ81kcogbarA08JFD8NrxjCwEY&sz=w1600",
+                                    caption: "Klik imej untuk besarkan paparan tanpa membuka tab baharu."
+                                }
+                            ],
                             after: "Masukkan pautan Meet tadi dan klik Add link."
                         },
                         {
@@ -660,11 +678,14 @@ window.AMALI_GCE_DATA = {
                             id: "l2-lab2-step-4",
                             title: "Semak Guest permissions",
                             before: "Pastikan pada bahagian Guest permissions semua pilihan berikut tidak ditanda:",
-                            copyBlocks: [
+                            copyBlocks: [],
+                            imageBlocks: [
                                 {
-                                    id: "l2-lab2-guest-permissions",
-                                    label: "Guest permissions unchecked",
-                                    text: "Modify event\nInvite others\nSee guest list"
+                                    id: "l2-lab2-step-4-guest-permissions-unchecked-image",
+                                    label: "Guest Permissions Unchecked",
+                                    alt: "Imej rujukan Guest permissions yang tidak ditanda dalam Google Calendar.",
+                                    src: "https://drive.google.com/thumbnail?id=1j53FSG3HJDQs2GJDuPd8-y7cjHrhJ25c&sz=w1600",
+                                    caption: "Klik imej untuk besarkan paparan tanpa membuka tab baharu."
                                 }
                             ],
                             after: ""
@@ -707,11 +728,14 @@ window.AMALI_GCE_DATA = {
                             id: "l2-lab2-step-9",
                             title: "Tetapkan notification",
                             before: "Tukar Notification mengikut nilai berikut:",
-                            copyBlocks: [
+                            copyBlocks: [],
+                            imageBlocks: [
                                 {
-                                    id: "l2-lab2-notification",
-                                    label: "Notification setting",
-                                    text: "Email\n1\nhours"
+                                    id: "l2-lab2-step-9-notification-setting-image",
+                                    label: "Notification Setting",
+                                    alt: "Imej rujukan tetapan notification kepada Email 1 hours dalam Google Calendar.",
+                                    src: "https://drive.google.com/thumbnail?id=1dhZeVjZ5XrO5AKw4gfal0jZZIxrFoy1R&sz=w1600",
+                                    caption: "Klik imej untuk besarkan paparan tanpa membuka tab baharu."
                                 }
                             ],
                             after: "Maksudnya: tukar Notification kepada Email, tukar 10 kepada 1, dan tukar minutes kepada hours."
@@ -803,6 +827,15 @@ window.AMALI_GCE_DATA = {
                             title: "Tambah Image placeholder",
                             before: "Klik tab Insert, cari Placeholder, kemudian Image placeholder, dan pilih salah satu dari 3 pilihan yang ada.",
                             copyBlocks: [],
+                            imageBlocks: [
+                                {
+                                    id: "l2-lab3-step-6-image-placeholder-image",
+                                    label: "Rujukan Image Placeholder",
+                                    alt: "Imej rujukan pilihan Image placeholder dalam Google Slides.",
+                                    src: "https://drive.google.com/thumbnail?id=1xosjA6I82ShT5nKi3p1AwhLoSxh93YkO&sz=w1600",
+                                    caption: "Klik imej untuk besarkan paparan tanpa membuka tab baharu."
+                                }
+                            ],
                             after: "Klik mana-mana dalam ruangan slide untuk aktifkan pilihan. Tutup Edit theme."
                         },
                         {
@@ -948,6 +981,15 @@ window.AMALI_GCE_DATA = {
                             title: "Assign comment kepada Teacher 1",
                             before: "Salin emel Teacher 1. Klik kanan pada slide 6 dan pilih Comment.",
                             copyBlocks: [],
+                            imageBlocks: [
+                                {
+                                    id: "l2-lab3-step-19-assign-comment-teacher-1-image",
+                                    label: "Rujukan Assign Comment",
+                                    alt: "Imej rujukan assign comment kepada Teacher 1 dalam Google Slides.",
+                                    src: "https://drive.google.com/thumbnail?id=1lEuNyOcILtwFQQwYnFMtjaqRueY9lep_&sz=w1600",
+                                    caption: "Klik imej untuk besarkan paparan tanpa membuka tab baharu."
+                                }
+                            ],
                             after: "Pastikan checkbox Assign ditanda dan klik Assign. Ulang perbuatan yang sama di slide 7."
                         },
                         {

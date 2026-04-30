@@ -1,6 +1,6 @@
 // amali-gce.js
 // Logic interaktif untuk amali-helper.html.
-// Versi V3 menyokong dropdown exam/lab, common start steps per lab session, guided step aktif, inline copy blocks, dan progress localStorage.
+// Versi V3 menyokong dropdown exam/lab, common start steps per lab session, guided step aktif, inline copy blocks, image blocks, dan progress localStorage.
 // Data sumber dibaca daripada window.AMALI_GCE_DATA yang disediakan oleh amali-gce-data.js.
 
 (function () {
@@ -297,8 +297,11 @@
                 const copyText = Array.isArray(step.copyBlocks)
                     ? step.copyBlocks.map((block) => `${block.label} ${block.text}`).join(' ')
                     : '';
+                const imageText = Array.isArray(step.imageBlocks)
+                    ? step.imageBlocks.map((block) => `${block.label || ''} ${block.alt || ''}`).join(' ')
+                    : '';
 
-                return [step.title, step.before, copyText, step.after].join(' ');
+                return [step.title, step.before, copyText, imageText, step.after].join(' ');
             }).join(' ');
 
             const searchableText = [
@@ -501,24 +504,66 @@
         `;
     }
 
+    // ── SURGICAL EDIT START: Besarkan fon langkah dan tambah renderer imej interaktif ──
     function renderCopyBlocks(copyBlocks) {
         if (!Array.isArray(copyBlocks) || copyBlocks.length === 0) return '';
 
         return `
-            <div class="mt-4 space-y-4">
+            <div class="mt-5 space-y-4">
                 ${copyBlocks.map((block) => `
                     <div class="overflow-hidden rounded-2xl border border-white/10 bg-[#0f172a] shadow-lg shadow-black/20">
                         <div class="flex items-center justify-between gap-3 border-b border-white/10 bg-slate-900/80 px-4 py-3">
                             <div class="min-w-0">
-                                <div class="truncate text-xs font-bold uppercase tracking-wider text-cyan-300">${escapeHtml(block.label || 'Teks')}</div>
+                                <div class="truncate text-sm font-bold uppercase tracking-wider text-cyan-300">${escapeHtml(block.label || 'Teks')}</div>
                             </div>
-                            <button type="button" data-copy-id="${escapeHtml(block.id)}" class="copy-btn shrink-0 rounded-lg border border-purple-400/30 bg-purple-500/15 px-3 py-1.5 text-xs font-bold text-purple-100 transition-all hover:bg-purple-500/25 active:scale-95">
+                            <button type="button" data-copy-id="${escapeHtml(block.id)}" class="copy-btn shrink-0 rounded-lg border border-purple-400/30 bg-purple-500/15 px-3 py-2 text-sm font-bold text-purple-100 transition-all hover:bg-purple-500/25 active:scale-95">
                                 Salin
                             </button>
                         </div>
-                        <pre class="max-h-64 overflow-auto whitespace-pre-wrap p-4 text-sm leading-7 text-blue-100/90 custom-scrollbar"><code>${escapeHtml(block.text || '')}</code></pre>
+                        <pre class="max-h-72 overflow-auto whitespace-pre-wrap p-4 text-base leading-8 text-blue-100/90 custom-scrollbar md:text-lg"><code>${escapeHtml(block.text || '')}</code></pre>
                     </div>
                 `).join('')}
+            </div>
+        `;
+    }
+
+    function renderImageBlocks(imageBlocks) {
+        if (!Array.isArray(imageBlocks) || imageBlocks.length === 0) return '';
+
+        return `
+            <div class="mt-5 grid grid-cols-1 gap-4">
+                ${imageBlocks.map((block, index) => {
+                    const src = block && block.src ? block.src : '';
+                    const alt = block && block.alt ? block.alt : `Imej langkah ${index + 1}`;
+                    const label = block && block.label ? block.label : 'Imej rujukan';
+                    const caption = block && block.caption ? block.caption : 'Klik imej untuk besarkan paparan tanpa membuka tab baharu.';
+
+                    if (!src) return '';
+
+                    return `
+                        <div class="overflow-hidden rounded-2xl border border-cyan-300/20 bg-cyan-950/20 shadow-lg shadow-black/20">
+                            <div class="border-b border-cyan-300/10 bg-cyan-950/40 px-4 py-3">
+                                <div class="text-sm font-bold uppercase tracking-wider text-cyan-200">${escapeHtml(label)}</div>
+                                <p class="mt-1 text-sm leading-relaxed text-cyan-100/70">${escapeHtml(caption)}</p>
+                            </div>
+                            <div
+                                role="button"
+                                tabindex="0"
+                                data-image-preview-src="${escapeHtml(src)}"
+                                data-image-preview-alt="${escapeHtml(alt)}"
+                                data-image-preview-title="${escapeHtml(label)}"
+                                class="image-preview-trigger group cursor-zoom-in bg-slate-950/60 p-3 outline-none transition-all hover:bg-slate-950 focus:ring-4 focus:ring-cyan-400/20"
+                                aria-label="Besarkan imej ${escapeHtml(label)}"
+                            >
+                                <img src="${escapeHtml(src)}" alt="${escapeHtml(alt)}" loading="lazy" class="mx-auto max-h-[420px] w-full rounded-xl border border-white/10 object-contain shadow-2xl shadow-black/30 transition-transform duration-200 group-hover:scale-[1.01]" />
+                                <div class="mt-3 flex items-center justify-center gap-2 text-sm font-bold text-cyan-100/80">
+                                    <span>🔍</span>
+                                    <span>Klik untuk besarkan</span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('')}
             </div>
         `;
     }
@@ -529,26 +574,29 @@
         const progressScope = scope === 'common' ? 'common' : lab ? lab.id : 'lab';
         const complete = scope === 'common' ? isCommonStepComplete(step.id) : isStepComplete(progressScope, step.id);
         const copyBlocksHtml = renderCopyBlocks(step.copyBlocks);
+        const imageBlocksHtml = renderImageBlocks(step.imageBlocks);
         const stepNumber = options && Number.isInteger(options.stepNumber) ? options.stepNumber : null;
         const totalSteps = options && Number.isInteger(options.totalSteps) ? options.totalSteps : null;
         const badgeText = stepNumber && totalSteps ? `Langkah ${stepNumber}/${totalSteps}` : 'Langkah';
 
         return `
-            <div class="rounded-3xl border ${complete ? 'border-emerald-300/20 bg-emerald-950/20' : 'border-white/10 bg-slate-900/60'} p-5 md:p-6 shadow-xl shadow-black/10">
+            <div class="rounded-3xl border ${complete ? 'border-emerald-300/20 bg-emerald-950/20' : 'border-white/10 bg-slate-900/60'} p-6 shadow-xl shadow-black/10 md:p-8">
                 <div class="flex items-start justify-between gap-4">
                     <div>
-                        <div class="inline-flex rounded-full border ${complete ? 'border-emerald-300/30 bg-emerald-400/10 text-emerald-200' : 'border-white/10 bg-white/5 text-slate-400'} px-3 py-1 text-[11px] font-bold uppercase tracking-wider">${escapeHtml(badgeText)}</div>
-                        <h3 class="mt-3 text-lg font-black text-white">${escapeHtml(step.title || '')}</h3>
+                        <div class="inline-flex rounded-full border ${complete ? 'border-emerald-300/30 bg-emerald-400/10 text-emerald-200' : 'border-white/10 bg-white/5 text-slate-400'} px-3 py-1 text-xs font-bold uppercase tracking-wider">${escapeHtml(badgeText)}</div>
+                        <h3 class="mt-4 text-xl font-black leading-snug text-white md:text-2xl">${escapeHtml(step.title || '')}</h3>
                     </div>
-                    <div class="shrink-0 rounded-full border ${complete ? 'border-emerald-300/30 bg-emerald-400/10 text-emerald-200' : 'border-white/10 bg-white/5 text-slate-500'} px-3 py-1 text-xs font-bold">${complete ? 'Selesai' : 'Aktif'}</div>
+                    <div class="shrink-0 rounded-full border ${complete ? 'border-emerald-300/30 bg-emerald-400/10 text-emerald-200' : 'border-white/10 bg-white/5 text-slate-500'} px-3 py-1 text-sm font-bold">${complete ? 'Selesai' : 'Aktif'}</div>
                 </div>
 
-                ${step.before ? `<p class="mt-4 text-sm leading-7 text-slate-300">${escapeHtml(step.before)}</p>` : ''}
+                ${step.before ? `<p class="mt-5 text-base leading-8 text-slate-300 md:text-lg">${escapeHtml(step.before)}</p>` : ''}
                 ${copyBlocksHtml}
-                ${step.after ? `<p class="mt-4 text-sm leading-7 text-slate-300">${escapeHtml(step.after)}</p>` : ''}
+                ${imageBlocksHtml}
+                ${step.after ? `<p class="mt-5 text-base leading-8 text-slate-300 md:text-lg">${escapeHtml(step.after)}</p>` : ''}
             </div>
         `;
     }
+    // ── SURGICAL EDIT END ──
 
     function renderCommonStartPanel() {
         const container = getElement(selectors.commonStartPanel);
@@ -920,6 +968,50 @@
         if (backdrop) backdrop.addEventListener('click', closeModal);
     }
 
+    // ── SURGICAL EDIT START: Lightbox imej tanpa membuka tab baharu ──
+    function closeImagePreviewModal() {
+        const modal = getElement('image-preview-modal');
+        if (modal) modal.remove();
+    }
+
+    function renderImagePreviewModal(src, alt, title) {
+        closeImagePreviewModal();
+
+        const safeSrc = escapeHtml(src || '');
+        const safeAlt = escapeHtml(alt || 'Imej rujukan langkah');
+        const safeTitle = escapeHtml(title || 'Imej rujukan');
+
+        if (!safeSrc) {
+            showToast('Imej tidak dijumpai.', 'error');
+            return;
+        }
+
+        const modalHtml = `
+            <div id="image-preview-modal" class="fixed inset-0 z-[180] flex items-center justify-center p-3 md:p-6">
+                <div class="absolute inset-0 bg-slate-950/90 backdrop-blur-sm" data-image-preview-close="true"></div>
+
+                <div class="relative flex max-h-[94vh] w-full max-w-6xl flex-col overflow-hidden rounded-3xl border border-white/10 bg-slate-950 shadow-2xl shadow-black/60">
+                    <div class="flex items-center justify-between gap-4 border-b border-white/10 bg-slate-900/90 px-4 py-3 md:px-5">
+                        <div class="min-w-0">
+                            <h3 class="truncate text-base font-black text-white md:text-lg">${safeTitle}</h3>
+                            <p class="mt-1 text-xs text-slate-400 md:text-sm">Paparan dibesarkan dalam halaman ini.</p>
+                        </div>
+                        <button type="button" data-image-preview-close="true" class="shrink-0 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-bold text-slate-200 transition-all hover:bg-white/10 active:scale-95">
+                            Tutup
+                        </button>
+                    </div>
+
+                    <div class="custom-scrollbar overflow-auto bg-slate-950 p-3 md:p-5">
+                        <img src="${safeSrc}" alt="${safeAlt}" class="mx-auto max-h-[78vh] w-auto max-w-full rounded-2xl border border-white/10 object-contain shadow-2xl shadow-black/40" />
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+    }
+    // ── SURGICAL EDIT END ──
+
     function showToast(message, type) {
         const toast = getElement(selectors.toast);
         if (!toast) return;
@@ -1153,7 +1245,45 @@
             handleSearchChange(searchInput.value);
         });
 
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') {
+                closeImagePreviewModal();
+                return;
+            }
+
+            const imagePreviewTrigger = event.target.closest('[data-image-preview-src]');
+            if (imagePreviewTrigger && (event.key === 'Enter' || event.key === ' ')) {
+                event.preventDefault();
+                event.stopPropagation();
+                renderImagePreviewModal(
+                    imagePreviewTrigger.getAttribute('data-image-preview-src'),
+                    imagePreviewTrigger.getAttribute('data-image-preview-alt'),
+                    imagePreviewTrigger.getAttribute('data-image-preview-title')
+                );
+            }
+        });
+
         document.addEventListener('click', (event) => {
+            const imagePreviewClose = event.target.closest('[data-image-preview-close]');
+            if (imagePreviewClose) {
+                event.preventDefault();
+                event.stopPropagation();
+                closeImagePreviewModal();
+                return;
+            }
+
+            const imagePreviewTrigger = event.target.closest('[data-image-preview-src]');
+            if (imagePreviewTrigger) {
+                event.preventDefault();
+                event.stopPropagation();
+                renderImagePreviewModal(
+                    imagePreviewTrigger.getAttribute('data-image-preview-src'),
+                    imagePreviewTrigger.getAttribute('data-image-preview-alt'),
+                    imagePreviewTrigger.getAttribute('data-image-preview-title')
+                );
+                return;
+            }
+
             const copyButton = event.target.closest('[data-copy-id]');
             if (copyButton) {
                 event.preventDefault();
