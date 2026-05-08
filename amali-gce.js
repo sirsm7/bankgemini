@@ -614,12 +614,19 @@
         container.classList.remove('hidden');
 
         const commonStart = data && data.commonStart ? data.commonStart : null;
-        // ── SURGICAL EDIT START: Ekstrak videoGuideUrl untuk Persediaan Awal ──
-        const videoGuideUrl = commonStart && commonStart.videoGuideUrl ? commonStart.videoGuideUrl : '';
-        // ── SURGICAL EDIT END ──
         const commonSteps = getCommonSteps();
         const commonDone = isCommonComplete();
         const firstCommonStep = commonSteps.length > 0 ? commonSteps[0] : null;
+
+        // ── SURGICAL EDIT START: Butang Video Panduan Persediaan Awal ──
+        const videoGuideUrl = commonStart && commonStart.videoGuideUrl ? commonStart.videoGuideUrl : '';
+        const videoGuideBtnHtml = videoGuideUrl ? `
+        <a href="${escapeHtml(videoGuideUrl)}" target="_blank" class="flex items-center justify-center gap-2 rounded-xl border border-rose-300/30 bg-rose-500/15 px-4 py-3 text-sm font-bold text-rose-100 transition-all hover:bg-rose-500/25 active:scale-95 shadow-lg shadow-rose-900/20">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            Tonton Panduan Awal
+        </a>
+        ` : '';
+        // ── SURGICAL EDIT END ──
 
         container.innerHTML = `
             <section class="rounded-3xl border ${commonDone ? 'border-emerald-300/20 bg-emerald-950/20' : 'border-amber-300/20 bg-amber-950/20'} p-5 md:p-6 shadow-xl shadow-black/10">
@@ -634,14 +641,7 @@
                         <p class="mt-2 max-w-3xl text-xs leading-relaxed text-amber-100/80">Status persediaan awal ini hanya sah untuk lab yang sedang dipilih. Jika tukar lab atau reload page, ia perlu disahkan semula.</p>
                     </div>
                     <div class="flex flex-col gap-2 sm:flex-row md:flex-col">
-                        // ── SURGICAL EDIT START: Butang Video Panduan Persediaan Awal ──
-                        ${videoGuideUrl ? `
-                        <a href="${escapeHtml(videoGuideUrl)}" target="_blank" class="flex items-center justify-center gap-2 rounded-xl border border-rose-300/30 bg-rose-500/15 px-4 py-3 text-sm font-bold text-rose-100 transition-all hover:bg-rose-500/25 active:scale-95 shadow-lg shadow-rose-900/20">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                            Tonton Panduan Awal
-                        </a>
-                        ` : ''}
-                        // ── SURGICAL EDIT END ──
+                        ${videoGuideBtnHtml}
                         <button type="button" id="open-guest-profile-btn" class="rounded-xl border border-cyan-300/30 bg-cyan-500/15 px-4 py-3 text-sm font-bold text-cyan-100 transition-all hover:bg-cyan-500/25 active:scale-95">
                             Buka Guest Profile
                         </button>
@@ -687,12 +687,18 @@
 
         container.classList.remove('hidden');
 
-        // ── SURGICAL EDIT START: Ekstrak videoGuideUrl untuk Lab Semasa ──
-        const videoGuideUrl = lab && lab.videoGuideUrl ? lab.videoGuideUrl : '';
-        // ── SURGICAL EDIT END ──
-
         const steps = getLabSteps(lab);
         const progress = getLabProgress(lab);
+
+        // ── SURGICAL EDIT START: Butang Video Tutorial Lab ──
+        const videoGuideUrl = lab && lab.videoGuideUrl ? lab.videoGuideUrl : '';
+        const videoGuideBtnHtml = videoGuideUrl ? `
+        <a href="${escapeHtml(videoGuideUrl)}" target="_blank" class="flex items-center justify-center gap-2 rounded-xl border border-rose-300/30 bg-rose-500/15 px-4 py-2 text-sm font-bold text-rose-100 transition-all hover:bg-rose-500/25 active:scale-95 shadow-lg shadow-rose-900/20">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            Video Tutorial Lab
+        </a>
+        ` : '';
+        // ── SURGICAL EDIT END ──
 
         container.innerHTML = `
             <section class="rounded-3xl border border-white/10 bg-slate-900/60 p-5 md:p-6 shadow-xl shadow-black/10">
@@ -702,14 +708,7 @@
                         <p class="mt-1 text-sm text-slate-400">Klik “Selesai & Seterusnya” untuk sembunyikan langkah semasa dan paparkan langkah berikutnya.</p>
                     </div>
                     <div class="flex flex-wrap gap-2">
-                        // ── SURGICAL EDIT START: Butang Video Tutorial Lab ──
-                        ${videoGuideUrl ? `
-                        <a href="${escapeHtml(videoGuideUrl)}" target="_blank" class="flex items-center justify-center gap-2 rounded-xl border border-rose-300/30 bg-rose-500/15 px-4 py-2 text-sm font-bold text-rose-100 transition-all hover:bg-rose-500/25 active:scale-95 shadow-lg shadow-rose-900/20">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                            Video Tutorial Lab
-                        </a>
-                        ` : ''}
-                        // ── SURGICAL EDIT END ──
+                        ${videoGuideBtnHtml}
                         <button type="button" id="jump-first-incomplete-btn" class="rounded-xl border border-cyan-300/30 bg-cyan-400/10 px-4 py-2 text-sm font-bold text-cyan-100 transition-all hover:bg-cyan-400/20 active:scale-95">
                             Pergi ke belum selesai
                         </button>
