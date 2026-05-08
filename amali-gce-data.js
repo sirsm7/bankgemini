@@ -13,6 +13,9 @@ window.AMALI_GCE_DATA = {
     commonStart: {
         title: "Persediaan Awal Semua Lab",
         description: "Langkah ini berulang untuk setiap lab. Selesaikan bahagian ini sekali sebelum meneruskan langkah khusus lab yang dipilih.",
+        // ── SURGICAL EDIT START: Suntik URL video panduan untuk Persediaan Awal ──
+        videoGuideUrl: "https://drive.google.com/file/d/1mqSPlc3f9Sh-gsySYsiPUe5mjz45sZs2/view?usp=drive_link",
+        // ── SURGICAL EDIT END ──
         steps: [
             {
                 id: "common-start-1",
@@ -56,6 +59,9 @@ window.AMALI_GCE_DATA = {
                     title: "Lab 1 - Google Classroom Lab Exam",
                     app: "Google Classroom",
                     summary: "Cipta kelas Geography, tambah tugasan Capital Cities, tetapkan topik dan tarikh akhir, kemudian pos pengumuman.",
+                    // ── SURGICAL EDIT START: Suntik URL video panduan untuk GCE L1 Lab 1 ──
+                    videoGuideUrl: "https://drive.google.com/file/d/1ge66P_oUEd1EdfXFjLNnXx5jXP66LPC5/view?usp=drive_link",
+                    // ── SURGICAL EDIT END ──
                     guidedSteps: [
                         {
                             id: "l1-lab1-step-1",
@@ -171,6 +177,9 @@ window.AMALI_GCE_DATA = {
                     title: "Lab 2 - Google Docs and Google Drive Lab Exam",
                     app: "Google Docs / Google Drive",
                     summary: "Cipta folder dan dokumen Supply List, kongsi sebagai Commenter, ubah tetapan share, dan tambah komen tugasan.",
+                    // ── SURGICAL EDIT START: Suntik URL video panduan untuk GCE L1 Lab 2 ──
+                    videoGuideUrl: "https://drive.google.com/file/d/1l4G_T8QnlDB9BdzuxLICQII1hDZT_fPN/view?usp=drive_link",
+                    // ── SURGICAL EDIT END ──
                     guidedSteps: [
                         {
                             id: "l1-lab2-step-1",
@@ -272,6 +281,9 @@ window.AMALI_GCE_DATA = {
                     title: "Lab 3 - Google Forms and Google Sheets Lab Exam",
                     app: "Google Forms / Google Sheets",
                     summary: "Bina kuiz Our Solar System, tambah imej, soalan, answer key, pautkan ke Sheets, dan kongsi kepada responden serta editor.",
+                    // ── SURGICAL EDIT START: Suntik URL video panduan untuk GCE L1 Lab 3 ──
+                    videoGuideUrl: "https://drive.google.com/file/d/1VqbWhSQh030wbdi-uPmlO_mGmMTeY4o-/view?usp=drive_link",
+                    // ── SURGICAL EDIT END ──
                     guidedSteps: [
                         {
                             id: "l1-lab3-step-1",
@@ -460,6 +472,9 @@ window.AMALI_GCE_DATA = {
                     title: "Lab 1 - Google Classroom",
                     app: "Google Classroom",
                     summary: "Cipta kelas Flipped Class, jana pautan Meet, pos announcement, jemput pelajar dan guru, serta bina topik, assignment dan material.",
+                    // ── SURGICAL EDIT START: Suntik URL video panduan untuk GCE L2 Lab 1 ──
+                    videoGuideUrl: "https://drive.google.com/file/d/1v-T-tENdWymkcoMcYlTHYl3dViTGghMd/view?usp=drive_link",
+                    // ── SURGICAL EDIT END ──
                     guidedSteps: [
                         {
                             id: "l2-lab1-step-1",
@@ -640,6 +655,9 @@ window.AMALI_GCE_DATA = {
                     title: "Lab 2 - Google Calendar",
                     app: "Google Calendar",
                     summary: "Cipta event Community Fair, jemput tetamu, tambah live stream, lokasi, notifikasi email dan lampiran Drive.",
+                    // ── SURGICAL EDIT START: Suntik URL video panduan untuk GCE L2 Lab 2 ──
+                    videoGuideUrl: "https://drive.google.com/file/d/1pkjUdJiKNCx0rUt-h-23CCmXU1_E8xl5/view?usp=drive_link",
+                    // ── SURGICAL EDIT END ──
                     guidedSteps: [
                         {
                             id: "l2-lab2-step-1",
@@ -774,6 +792,9 @@ window.AMALI_GCE_DATA = {
                     title: "Lab 3 - Google Slides",
                     app: "Google Slides",
                     summary: "Bina presentation Welcome to Our Team, cipta layout Image Placeholder, tambah slide guru, kongsi akses, dan assign comment kepada guru.",
+                    // ── SURGICAL EDIT START: Suntik URL video panduan untuk GCE L2 Lab 3 ──
+                    videoGuideUrl: "https://drive.google.com/file/d/1wzAwlxdko_VQNLs55J6q3v_0W4JZiXa-/view?usp=drive_link",
+                    // ── SURGICAL EDIT END ──
                     guidedSteps: [
                         {
                             id: "l2-lab3-step-1",
