@@ -1,4 +1,4 @@
-const CACHE_NAME = 'google-ed-prep-v1';
+const CACHE_NAME = 'google-ed-prep-v2';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -36,19 +36,34 @@ self.addEventListener('activate', (event) => {
   );
 });
 
+function cleanResponse(response) {
+  if (!response || !response.redirected) {
+    return response;
+  }
+
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers: response.headers
+  });
+}
+
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
 
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
       if (cachedResponse) {
-        return cachedResponse;
+        return cleanResponse(cachedResponse);
       }
+
       return fetch(event.request).then((networkResponse) => {
-        return networkResponse;
+        return cleanResponse(networkResponse);
       }).catch(() => {
         if (event.request.mode === 'navigate') {
-          return caches.match('./index.html');
+          return caches.match('./index.html').then((fallbackResponse) => {
+            return cleanResponse(fallbackResponse);
+          });
         }
       });
     })
